@@ -54,3 +54,14 @@ it('keeps a single current academic year', function (): void {
         'libelle' => '2027-2028', 'debut' => '2027-10-01', 'fin' => '2028-09-30',
     ])->assertForbidden();
 });
+
+it('keeps a long team name on a single line, without extra spaces', function (): void {
+    $equipe = EquipeAccueil::factory()->create(['sigle' => 'EAD 1']);
+    $nom = "Biotechnologies analytiques et impacts physiopathologiques\n des déchets,  de l'environnement et de l'eau";
+
+    $this->actingAs(superAdmin())->putJson(route('equipes.update', $equipe), ['sigle' => ' EAD 1 ', 'nom' => $nom, 'description' => "Axe 1\nAxe 2"])
+        ->assertOk()
+        ->assertJsonPath('data.sigle', 'EAD 1')
+        ->assertJsonPath('data.nom', "Biotechnologies analytiques et impacts physiopathologiques des déchets, de l'environnement et de l'eau")
+        ->assertJsonPath('data.description', "Axe 1\nAxe 2");
+});

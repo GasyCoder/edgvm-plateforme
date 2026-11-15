@@ -14,6 +14,24 @@ const compact = useLocalStorage('edgvm-menu-compact', false)
 const survol = ref(false)
 const menuMobile = ref(false)
 const replie = computed(() => compact.value && !survol.value)
+
+/*
+ * Menu réduit : il se déplie en survol, par-dessus le contenu. Juste après un clic sur « Réduire »,
+ * la souris est encore sur le menu : on attend qu'elle en sorte avant de le redéplier au survol.
+ */
+const survolBloque = ref(false)
+function basculerMenu() {
+  compact.value = !compact.value
+  survol.value = false
+  survolBloque.value = compact.value
+}
+function entrer() {
+  if (!survolBloque.value) survol.value = true
+}
+function sortir() {
+  survol.value = false
+  survolBloque.value = false
+}
 watch(() => route.fullPath, () => { menuMobile.value = false })
 </script>
 
@@ -24,9 +42,9 @@ watch(() => route.fullPath, () => { menuMobile.value = false })
 
     <aside
       class="fixed inset-y-0 start-0 z-50 flex flex-col overflow-hidden border-e border-gray-200 bg-white transition-[transform,width] duration-300 xl:translate-x-0"
-      :class="[menuMobile ? 'translate-x-0 shadow-xl' : '-translate-x-full', replie ? 'xl:w-[74px]' : 'w-72']"
-      @mouseenter="survol = true"
-      @mouseleave="survol = false"
+      :class="[menuMobile ? 'translate-x-0 shadow-xl' : '-translate-x-full', replie ? 'xl:w-[74px]' : 'w-72', compact && survol ? 'xl:shadow-xl' : '']"
+      @mouseenter="entrer"
+      @mouseleave="sortir"
     >
       <div class="flex h-16 flex-none items-center gap-3 border-b border-gray-200 px-5">
         <NuxtLink to="/" class="flex min-w-0 items-center gap-3">
@@ -46,8 +64,9 @@ watch(() => route.fullPath, () => { menuMobile.value = false })
       <button
         type="button"
         class="hidden h-12 flex-none items-center gap-3 border-t border-gray-200 px-6 text-sm text-slate-400 hover:text-brand-700 xl:flex"
-        :aria-label="compact ? 'Déplier le menu' : 'Réduire le menu'"
-        @click="compact = !compact"
+        :aria-label="compact ? 'Garder le menu ouvert' : 'Réduire le menu'"
+        :aria-pressed="compact"
+        @click="basculerMenu"
       >
         <ChevronsRight v-if="compact" class="size-5 flex-none" />
         <ChevronsLeft v-else class="size-5 flex-none" />
@@ -72,7 +91,8 @@ watch(() => route.fullPath, () => { menuMobile.value = false })
             <span class="size-2 rounded-full bg-leaf-400" />
             Année universitaire <span class="font-semibold text-slate-700">{{ anneeCourante.libelle }}</span>
           </p>
-          <div class="ms-auto">
+          <div class="ms-auto flex items-center gap-1 sm:gap-3">
+            <ClocheNotifications />
             <MenuUtilisateur />
           </div>
         </div>

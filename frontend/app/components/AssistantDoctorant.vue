@@ -11,16 +11,22 @@ import { Textarea } from '@/components/ui/textarea'
 import type { Doctorant, Ressource } from '~/types'
 
 /**
- * Création d'un dossier en cinq étapes. Chaque étape est vérifiée par l'API (mêmes règles que l'enregistrement)
- * avant de passer à la suivante ; le brouillon est gardé pendant la session du navigateur.
+ * Dossier doctorant en cinq étapes, à la création comme à la modification. Chaque étape est vérifiée par l'API
+ * (mêmes règles que l'enregistrement) avant de passer à la suivante. À la création, le brouillon est gardé
+ * pendant la session du navigateur ; à la modification, toutes les étapes sont accessibles d'emblée.
  */
-const ETAPES = [
-  { cle: 'identite', titre: 'Identité', aide: 'Nom, naissance, pièce' },
+const props = defineProps<{ doctorant?: Doctorant }>()
+const modification = computed(() => !!props.doctorant)
+
+const ETAPES = computed(() => [
+  { cle: 'identite', titre: 'Identité', aide: 'Nom, naissance, photo' },
   { cle: 'contact', titre: 'Contact et accès', aide: 'E-mail et téléphone' },
   { cle: 'these', titre: 'Thèse', aide: "Équipe d'accueil, sujet" },
-  { cle: 'inscription', titre: 'Inscription', aide: 'Année, niveau, droits' },
-  { cle: 'recapitulatif', titre: 'Récapitulatif', aide: 'Vérifier et créer' },
-] as const
+  modification.value
+    ? { cle: 'inscription', titre: 'Suivi', aide: 'Statut, bourse, annuaire' }
+    : { cle: 'inscription', titre: 'Inscription', aide: 'Année, niveau, droits' },
+  { cle: 'recapitulatif', titre: 'Récapitulatif', aide: modification.value ? 'Vérifier et enregistrer' : 'Vérifier et créer' },
+] as const)
 
 const api = useApi()
 const { equipes, annees, anneeCourante } = useReferentiels()
@@ -29,33 +35,46 @@ const vide = () => ({
   nom: '', prenoms: '', genre: null as string | null, date_naissance: '', lieu_naissance: '', nationalite: 'Malagasy',
   numero_piece: '', adresse: '', email: '', telephone: '', envoyer_invitation: true,
   equipe_accueil_id: null as number | null, sujet_these: '', directeur_these: '', co_directeur: '', co_encadrant: '',
-  inscrire: true, inscription: { annee_universitaire_id: null as number | null, niveau: 'D1', montant_du: 0 },
-  matricule: '', visible_annuaire: false, observation: '',
+  inscrire: true, inscription: { annee_universitaire_id: null as number | null, niveau: 'D1' },
+  matricule: '', statut: 'actif' as Doctorant['statut'], est_boursier: false, visible_annuaire: false, observation: '',
 })
+const depuisDossier = (d: Doctorant) => ({
+  ...vide(),
+  nom: d.nom, prenoms: d.prenoms ?? '', genre: d.genre ?? null, date_naissance: d.date_naissance ?? '', lieu_naissance: d.lieu_naissance ?? '',
+  nationalite: d.nationalite ?? '', numero_piece: d.numero_piece ?? '', adresse: d.adresse ?? '', email: d.email ?? '', telephone: d.telephone ?? '',
+  equipe_accueil_id: d.equipe?.id ?? null, sujet_these: d.sujet_these ?? '', directeur_these: d.directeur_these ?? '', co_directeur: d.co_directeur ?? '', co_encadrant: d.co_encadrant ?? '',
+  inscrire: false, matricule: d.matricule, statut: d.statut, est_boursier: d.est_boursier, visible_annuaire: d.visible_annuaire, observation: d.observation ?? '',
+})
+/* Brouillon de session seulement à la création */
 const brouillon = useSessionStorage('edgvm-nouveau-doctorant', vide(), { mergeDefaults: true })
-const formulaire = reactive(brouillon.value)
-watch(formulaire, valeur => { brouillon.value = valeur }, { deep: true })
+const formulaire = reactive(props.doctorant ? depuisDossier(props.doctorant) : brouillon.value)
+if (!props.doctorant) watch(formulaire, valeur => { brouillon.value = valeur }, { deep: true })
+const photo = ref<File | null>(null)
 watch(anneeCourante, (annee) => {
   if (annee && !formulaire.inscription.annee_universitaire_id) formulaire.inscription.annee_universitaire_id = annee.id
 }, { immediate: true })
 
 const courante = ref(0)
-const atteinte = ref(0)
+const atteinte = ref(props.doctorant ? 4 : 0)
 const erreurs = ref<Record<string, string>>({})
 const envoi = ref(false)
 
 const sansVide = (valeurs: Record<string, unknown>) => Object.fromEntries(Object.entries(valeurs).map(([cle, valeur]) => [cle, valeur === '' ? null : valeur]))
 const corps = () => {
-  const { inscrire, inscription, ...reste } = formulaire
-  return { ...sansVide(reste), inscription: inscrire ? inscription : null }
+  const { inscrire, inscription, statut, envoyer_invitation, ...reste } = formulaire
+  return props.doctorant
+    ? { ...sansVide(reste), statut }
+    : { ...sansVide(reste), envoyer_invitation, inscription: inscrire ? inscription : null }
 }
+const adresse = () => props.doctorant ? `/api/doctorants/${props.doctorant.id}` : '/api/doctorants'
+const methode = () => props.doctorant ? 'PUT' as const : 'POST' as const
 
 /** Étape de chaque champ, pour revenir à la bonne étape si l'enregistrement final signale une erreur. */
 const etapeDuChamp = (champ: string) => {
   const racine = champ.split('.')[0]!
   if (['email', 'telephone', 'envoyer_invitation'].includes(racine)) return 1
   if (['equipe_accueil_id', 'sujet_these', 'directeur_these', 'co_directeur', 'co_encadrant'].includes(racine)) return 2
-  if (['inscription', 'matricule', 'visible_annuaire', 'observation'].includes(racine)) return 3
+  if (['inscription', 'matricule', 'statut', 'est_boursier', 'visible_annuaire', 'observation'].includes(racine)) return 3
   return 0
 }
 
@@ -63,7 +82,7 @@ async function suivant() {
   envoi.value = true
   erreurs.value = {}
   try {
-    await api('/api/doctorants', { method: 'POST', body: { ...corps(), etape: ETAPES[courante.value]!.cle } })
+    await api(adresse(), { method: methode(), body: { ...corps(), etape: ETAPES.value[courante.value]!.cle } })
     courante.value++
     atteinte.value = Math.max(atteinte.value, courante.value)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -84,13 +103,26 @@ function allerA(index: number) {
   }
 }
 
-async function creer() {
+async function enregistrer() {
   envoi.value = true
   erreurs.value = {}
   try {
-    const reponse = await api<Ressource<Doctorant>>('/api/doctorants', { method: 'POST', body: corps() })
+    const reponse = await api<Ressource<Doctorant>>(adresse(), { method: methode(), body: corps() })
+    if (props.doctorant) {
+      toast.success('Dossier enregistré.')
+      clearNuxtData(cle => cle.startsWith('doctorant') || cle === 'tableau-de-bord')
+      await navigateTo(`/doctorants/${reponse.data.id}`)
+      return
+    }
+    if (photo.value) {
+      const donnees = new FormData()
+      donnees.append('photo', photo.value)
+      await api(`/api/doctorants/${reponse.data.id}/photo`, { method: 'POST', body: donnees })
+        .catch(() => toast.warning("Dossier créé, mais la photo n'a pas pu être enregistrée. Ajoutez-la depuis « Modifier »."))
+    }
     toast.success(`Dossier créé${formulaire.envoyer_invitation ? ", lien d'accès envoyé" : ''}. Vous pouvez ajouter ses pièces jointes.`)
     brouillon.value = vide()
+    photo.value = null
     clearNuxtData(cle => cle.startsWith('doctorant') || cle === 'tableau-de-bord')
     await navigateTo(`/doctorants/${reponse.data.id}?pieces=1`)
   }
@@ -111,6 +143,7 @@ async function creer() {
 }
 
 function recommencer() {
+  photo.value = null
   Object.assign(formulaire, vide())
   formulaire.inscription.annee_universitaire_id = anneeCourante.value?.id ?? null
   courante.value = 0
@@ -118,6 +151,7 @@ function recommencer() {
   erreurs.value = {}
 }
 
+const STATUTS = [['actif', 'Actif'], ['suspendu', 'Suspendu'], ['abandon', 'Abandon'], ['diplome', 'Diplômé']] as const
 const equipeChoisie = computed(() => equipes.value.find(e => e.id === formulaire.equipe_accueil_id))
 const anneeChoisie = computed(() => annees.value.find(a => a.id === formulaire.inscription.annee_universitaire_id))
 const recapitulatif = computed(() => [
@@ -132,7 +166,7 @@ const recapitulatif = computed(() => [
   { etape: 1, titre: 'Contact et accès', lignes: [
     ['E-mail', formulaire.email],
     ['Téléphone', formulaire.telephone],
-    ["Lien d'accès", formulaire.envoyer_invitation ? 'Envoyé à la création' : 'Pas envoyé pour le moment'],
+    ["Lien d'accès", modification.value ? '' : formulaire.envoyer_invitation ? 'Envoyé à la création' : 'Pas envoyé pour le moment'],
   ] },
   { etape: 2, titre: 'Thèse', lignes: [
     ["Équipe d'accueil", equipeChoisie.value ? `${equipeChoisie.value.sigle}, ${equipeChoisie.value.nom}` : ''],
@@ -141,9 +175,11 @@ const recapitulatif = computed(() => [
     ['Co-directeur', formulaire.co_directeur],
     ['Co-encadrant', formulaire.co_encadrant],
   ] },
-  { etape: 3, titre: 'Inscription et suivi', lignes: [
-    ['Inscription', formulaire.inscrire ? `${anneeChoisie.value?.libelle ?? ''}, ${formulaire.inscription.niveau}, ${formaterMontant(formulaire.inscription.montant_du)}` : 'Pas pour le moment'],
+  { etape: 3, titre: modification.value ? 'Suivi' : 'Inscription et suivi', lignes: [
+    ['Inscription', modification.value ? '' : formulaire.inscrire ? `${anneeChoisie.value?.libelle ?? ''}, ${formulaire.inscription.niveau} (droits selon les tarifs)` : 'Pas pour le moment'],
+    ['Statut', modification.value ? STATUTS.find(([v]) => v === formulaire.statut)?.[1] ?? '' : ''],
     ['Matricule', formulaire.matricule || 'Attribué automatiquement'],
+    ['Bourse', formulaire.est_boursier ? 'Boursier' : 'Non boursier'],
     ['Annuaire du site', formulaire.visible_annuaire ? 'Visible' : 'Non visible'],
     ['Observation', formulaire.observation],
   ] },
@@ -188,21 +224,22 @@ const recapitulatif = computed(() => [
         </div>
       </div>
 
-      <form class="rounded-md border border-gray-300 bg-white" novalidate @submit.prevent="courante < ETAPES.length - 1 ? suivant() : creer()">
+      <form class="rounded-md border border-gray-300 bg-white" novalidate @submit.prevent="courante < ETAPES.length - 1 ? suivant() : enregistrer()">
         <div class="border-b border-gray-200 px-5 py-4 sm:px-7">
           <h2 class="text-lg font-bold text-slate-700">{{ ETAPES[courante]!.titre }}</h2>
           <p class="text-sm text-slate-400">
             <template v-if="courante === 0">Comme sur la pièce d'identité. Seul le nom est obligatoire.</template>
             <template v-else-if="courante === 1">L'adresse e-mail sert d'identifiant pour se connecter à la plateforme.</template>
             <template v-else-if="courante === 2">L'équipe d'accueil détermine qui peut suivre ce doctorant.</template>
-            <template v-else-if="courante === 3">Inscription pour une année universitaire et informations de suivi.</template>
-            <template v-else>Vérifiez les informations avant de créer le dossier.</template>
+            <template v-else-if="courante === 3">{{ modification ? 'Statut du dossier, bourse et informations de suivi. Les inscriptions se gèrent depuis la fiche.' : 'Inscription pour une année universitaire et informations de suivi.' }}</template>
+            <template v-else>{{ modification ? 'Vérifiez les modifications avant de les enregistrer.' : 'Vérifiez les informations avant de créer le dossier.' }}</template>
           </p>
         </div>
 
         <div class="px-5 py-6 sm:px-7">
           <!-- 1. Identité -->
           <div v-if="courante === 0" class="grid gap-4 sm:grid-cols-2">
+            <ChampPhoto v-model:fichier="photo" :doctorant-id="doctorant?.id" :photo-url="doctorant?.photo_url" class="sm:col-span-2" />
             <ChampFormulaire libelle="Nom" pour="nom" :erreur="erreurs.nom" requis>
               <Input id="nom" v-model="formulaire.nom" autocomplete="family-name" autofocus :aria-invalid="!!erreurs.nom" />
             </ChampFormulaire>
@@ -243,7 +280,7 @@ const recapitulatif = computed(() => [
             <ChampFormulaire libelle="Téléphone" pour="telephone" :erreur="erreurs.telephone" aide="Pour les SMS et WhatsApp. Exemple : 034 12 345 67.">
               <Input id="telephone" v-model="formulaire.telephone" type="tel" autocomplete="tel" :aria-invalid="!!erreurs.telephone" />
             </ChampFormulaire>
-            <div class="flex items-start justify-between gap-4 rounded-md border p-4 sm:col-span-2">
+            <div v-if="!modification" class="flex items-start justify-between gap-4 rounded-md border p-4 sm:col-span-2">
               <div>
                 <Label for="invitation">Envoyer le lien d'accès à la création</Label>
                 <p class="mt-1 text-xs text-slate-400">Le doctorant reçoit un e-mail pour choisir son mot de passe (lien valable 7 jours).</p>
@@ -280,15 +317,23 @@ const recapitulatif = computed(() => [
 
           <!-- 4. Inscription et suivi -->
           <div v-else-if="courante === 3" class="grid gap-5">
-            <div class="rounded-md border p-4">
+            <ChampFormulaire v-if="modification" libelle="Statut du dossier" pour="statut" :erreur="erreurs.statut" requis class="sm:max-w-xs">
+              <Select v-model="formulaire.statut">
+                <SelectTrigger id="statut" class="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="[valeur, libelle] in STATUTS" :key="valeur" :value="valeur">{{ libelle }}</SelectItem>
+                </SelectContent>
+              </Select>
+            </ChampFormulaire>
+            <div v-else class="rounded-md border p-4">
               <div class="flex items-start justify-between gap-4">
                 <div>
                   <Label for="inscrire">Inscrire maintenant</Label>
-                  <p class="mt-1 text-xs text-slate-400">D2 ou D3 pour un doctorant déjà avancé dans sa thèse.</p>
+                  <p class="mt-1 text-xs text-slate-400">D2 ou D3 pour un doctorant déjà avancé. Les droits d'inscription sont ajoutés selon les tarifs des Paramètres.</p>
                 </div>
                 <Switch id="inscrire" v-model="formulaire.inscrire" />
               </div>
-              <div v-if="formulaire.inscrire" class="mt-4 grid gap-4 sm:grid-cols-3">
+              <div v-if="formulaire.inscrire" class="mt-4 grid gap-4 sm:grid-cols-2">
                 <ChampFormulaire libelle="Année" pour="insc-annee" :erreur="erreurs['inscription.annee_universitaire_id']" requis>
                   <Select v-model="formulaire.inscription.annee_universitaire_id">
                     <SelectTrigger id="insc-annee" class="w-full"><SelectValue placeholder="Choisir" /></SelectTrigger>
@@ -305,15 +350,20 @@ const recapitulatif = computed(() => [
                     </SelectContent>
                   </Select>
                 </ChampFormulaire>
-                <ChampFormulaire libelle="Droits d'inscription (Ar)" pour="insc-montant" :erreur="erreurs['inscription.montant_du']" requis>
-                  <Input id="insc-montant" v-model.number="formulaire.inscription.montant_du" type="number" min="0" step="1000" inputmode="numeric" />
-                </ChampFormulaire>
+
               </div>
             </div>
             <div class="grid gap-4 sm:grid-cols-2">
               <ChampFormulaire libelle="Matricule" pour="matricule" :erreur="erreurs.matricule" aide="Laisser vide pour un numéro automatique (EDGVM-2026-0001).">
                 <Input id="matricule" v-model="formulaire.matricule" :aria-invalid="!!erreurs.matricule" />
               </ChampFormulaire>
+              <div class="flex items-start justify-between gap-4 rounded-md border p-4">
+                <div>
+                  <Label for="boursier">Boursier</Label>
+                  <p class="mt-1 text-xs text-slate-400">Le doctorant bénéficie d'une bourse de thèse.</p>
+                </div>
+                <Switch id="boursier" v-model="formulaire.est_boursier" />
+              </div>
               <div class="flex items-start justify-between gap-4 rounded-md border p-4">
                 <div>
                   <Label for="annuaire">Visible dans l'annuaire du site</Label>
@@ -346,15 +396,21 @@ const recapitulatif = computed(() => [
 
         <div class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 px-5 py-4 sm:px-7">
           <Button v-if="courante > 0" type="button" variant="outline" @click="allerA(courante - 1)"><ArrowLeft /> Précédent</Button>
+          <Button v-else-if="modification" type="button" variant="ghost" class="text-slate-500" as-child><NuxtLink :to="`/doctorants/${doctorant!.id}`">Annuler</NuxtLink></Button>
           <Button v-else type="button" variant="ghost" class="text-slate-500" @click="recommencer">Vider le formulaire</Button>
-          <Button v-if="courante < ETAPES.length - 1" type="submit" :disabled="envoi">
-            <Loader2 v-if="envoi" class="animate-spin" />
-            Suivant <ArrowRight />
-          </Button>
-          <Button v-else type="submit" :disabled="envoi">
-            <Loader2 v-if="envoi" class="animate-spin" /><Check v-else />
-            Créer le dossier
-          </Button>
+          <div class="flex flex-wrap gap-2">
+            <Button v-if="modification && courante < ETAPES.length - 1" type="button" variant="outline" :disabled="envoi" @click="enregistrer()">
+              <Check /> Enregistrer maintenant
+            </Button>
+            <Button v-if="courante < ETAPES.length - 1" type="submit" :disabled="envoi">
+              <Loader2 v-if="envoi" class="animate-spin" />
+              Suivant <ArrowRight />
+            </Button>
+            <Button v-else type="submit" :disabled="envoi">
+              <Loader2 v-if="envoi" class="animate-spin" /><Check v-else />
+              {{ modification ? 'Enregistrer les modifications' : 'Créer le dossier' }}
+            </Button>
+          </div>
         </div>
       </form>
     </div>

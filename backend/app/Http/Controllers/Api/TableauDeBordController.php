@@ -9,7 +9,9 @@ use App\Http\Resources\AnneeUniversitaireResource;
 use App\Models\AnneeUniversitaire;
 use App\Models\Doctorant;
 use App\Models\EquipeAccueil;
+use App\Models\FraisDoctorant;
 use App\Models\Inscription;
+use App\Models\Paiement;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -47,6 +49,9 @@ class TableauDeBordController extends Controller
                 'derogation' => $inscriptions()->where('est_derogation', true)->count(),
             ],
             'derogations_sans_decision' => $inscriptions()->where('est_derogation', true)->whereNull('decision_derogation')->count(),
+            'doctorants_en_retard' => $doctorants()->enRetardDePaiement()->count(),
+            'reste_a_recouvrer' => $user->estSuperAdmin() ? (int) FraisDoctorant::query()->impayes()->selectRaw('coalesce(sum(montant - montant_paye), 0) as reste')->value('reste') : null,
+            'encaisse_annee' => $user->estSuperAdmin() && $annee ? (int) Paiement::query()->whereNull('annule_le')->whereBetween('date_paiement', [$annee->debut, $annee->fin])->sum('montant') : null,
             'actifs_sans_inscription' => $annee ? $doctorants()->where('statut', StatutDoctorant::Actif->value)->whereDoesntHave('inscriptionCourante')->count() : 0,
             'par_equipe' => EquipeAccueil::query()
                 ->when(! $user->estSuperAdmin(), fn (Builder $equipe) => $equipe->whereIn('id', $user->idsEquipesSuivies()))

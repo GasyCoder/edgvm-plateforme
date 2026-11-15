@@ -93,10 +93,13 @@ scripts/construire.sh
 - `users` : compte de connexion, `role`, `telephone` (format E.164, `+261...`).
 - `equipes_accueil` : `sigle`, `nom`. Le `sigle` est le même que sur le site vitrine.
 - `membres_ead` (pivot `user` × `equipe_accueil`, avec la fonction : responsable, membre).
-- `doctorants` : `user_id`, `matricule` unique, identité, `equipe_accueil_id`, `visible_annuaire` (accord pour l'annuaire public), `statut` (`actif`, `suspendu`, `abandon`, `diplome`).
+- `equipes_accueil` : `sigle` (identique au site vitrine), `nom`, `domaine`, `description` ; `programmes_doctoraux` (nom unique par équipe, `ordre`) ; `membres_equipe` (personnes de l'équipe sans compte obligatoire : `nom`, `titre`, `fonction` responsable, encadrant ou membre, spécialité, établissement, contacts). Les comptes qui voient les doctorants de l'équipe restent dans `equipe_accueil_user`.
+- `doctorants` : `user_id`, `matricule` unique, identité, `equipe_accueil_id`, `est_boursier`, `visible_annuaire` (accord pour l'annuaire public), `statut` (`actif`, `suspendu`, `abandon`, `diplome`).
 - `annees_universitaires` : `libelle` (« 2026-2027 »), `debut`, `fin`, `est_courante`.
-- `inscriptions` : `doctorant` × `annee_universitaire`, `niveau` (`D1`, `D2`, `D3`), `type` (`premiere`, `reinscription`), `est_derogation` + `motif_derogation` + `decision_derogation`, `statut`, `montant_du`.
-- `paiements` : `inscription_id`, `montant`, `date_paiement`, `mode` (`especes`, `banque`, `mobile_money`), `reference`, `saisi_par`.
+- `inscriptions` : `doctorant` × `annee_universitaire`, `niveau` (`D1`, `D2`, `D3`), `type` (`premiere`, `reinscription`), `est_derogation` + `motif_derogation` + `decision_derogation`, `statut`.
+- `types_frais` (paramètres) : catalogue des frais (droits d'inscription, tee-shirt, cotisation...), montant unique ou `montants_niveaux` (D1, D2, D3, dérogation), `obligatoire` (créé à chaque inscription), `delai_jours`.
+- `frais_doctorants` : montant dû par un doctorant (`libelle`, `montant`, `montant_paye` recalculé, `echeance`, ajustement ou annulation avec motif).
+- `paiements` : versement avec reçu `REC-{année}-{000001}`, `montant`, `reste_apres`, `date_paiement`, `mode` (`especes`, `virement`, `mobile_money`, `cheque`), `reference`, `saisi_par`, annulation avec motif ; `paiement_frais` répartit un versement entre les frais.
 - `theses` : `doctorant_id`, `titre`, `resume`, `mots_cles`, `statut` (`en_cours`, `soutenue`), `date_soutenance`, `pdf` ; `these_encadrants` (directeur, codirecteur) ; `jury_membres`.
 - `suivis` : étapes d'avancement (comité de suivi, séminaire, publication, rapport annuel) avec date, avis et pièce jointe.
 - `actes` : `type`, `numero` unique (`EDGVM/2026/000123`), `doctorant_id`, `inscription_id`, `code_verification`, `fichier`, `delivre_par`, `delivre_le`, `annule_le`.
@@ -105,9 +108,10 @@ scripts/construire.sh
 Règles métier :
 
 - **Montants en ariary (MGA), entiers** (`unsignedBigInteger`), jamais de flottant. Affichage `1 250 000 Ar`.
-- **Reste à payer** = `montant_du` de l'inscription moins la somme des `paiements`. Calculé, jamais saisi.
+- **Reste à payer** = somme des frais non annulés moins leur payé (`App\Support\SituationFinanciere`). Calculé, jamais saisi. Un frais en retard = impayé dont l'échéance est passée.
 - **Niveau** : D1 à D3 en durée normale. Au delà, l'inscription est une **dérogation** : elle exige un motif et une décision enregistrée avant de pouvoir délivrer une attestation.
-- Les paiements sont **saisis par la scolarité** (`super_admin`). Pas de paiement en ligne pour l'instant ; garder le code prêt à recevoir un mode `mobile_money` automatique plus tard.
+- Les paiements sont **saisis par la scolarité** (`super_admin`) via `App\Actions\EnregistrerPaiement` (répartition automatique par échéance, ou donnée ; jamais plus que le reste). Un paiement ne se supprime pas : `AnnulerPaiement`. Pas de paiement en ligne pour l'instant ; garder le code prêt à recevoir un mode `mobile_money` automatique plus tard.
+- Les frais obligatoires sont créés à l'inscription (`AppliquerFraisInscription`) ; un nouveau tarif ne change pas les montants déjà dus. Un membre d'équipe ne voit que le statut de paiement, jamais les montants.
 - Un acte délivré ne se modifie pas : on l'annule (`annule_le`) et on en délivre un nouveau. La vérification publique par QR code indique « valide » ou « annulé ».
 
 ### Interface

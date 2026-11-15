@@ -1,4 +1,4 @@
-import { CalendarRange, CircleUserRound, FilePen, FileStack, FolderOpen, LayoutDashboard, Network, UserCog, Users } from '@lucide/vue'
+import { CalendarRange, CircleUserRound, FilePen, FileStack, FolderOpen, LayoutDashboard, Network, Settings2, UserCog, Users, Wallet } from '@lucide/vue'
 import type { Component } from 'vue'
 import type { Role } from '~/types'
 
@@ -17,11 +17,14 @@ const LIENS: LienNavigation[] = [
   { libelle: 'Tableau de bord', court: 'Accueil', vers: '/', icone: LayoutDashboard, roles: ['super_admin', 'membre_ead'], section: 'Pilotage', enBas: true },
   { libelle: 'Mon dossier', court: 'Dossier', vers: '/', icone: FolderOpen, roles: ['doctorant'], section: 'Mon espace', enBas: true },
   { libelle: 'Doctorants', vers: '/doctorants', icone: Users, roles: ['super_admin', 'membre_ead'], section: 'Gestion', enBas: true },
-  { libelle: "Équipes d'accueil", court: 'Équipes', vers: '/equipes', icone: Network, roles: ['super_admin', 'membre_ead'], section: 'Gestion', enBas: true },
+  { libelle: "Équipes d'accueil", court: 'Équipes', vers: '/equipes', icone: Network, roles: ['super_admin', 'membre_ead'], section: 'Gestion' },
+  { libelle: 'Paiements', vers: '/paiements', icone: Wallet, roles: ['super_admin'], section: 'Finances', enBas: true },
+  { libelle: 'Mes paiements', court: 'Paiements', vers: '/paiements', icone: Wallet, roles: ['doctorant'], section: 'Mon espace', enBas: true },
   { libelle: 'Actes délivrés', court: 'Actes', vers: '/actes', icone: FileStack, roles: ['super_admin', 'membre_ead'], section: 'Actes administratifs', enBas: true },
   { libelle: "Modèles d'actes", court: 'Modèles', vers: '/actes/modeles', icone: FilePen, roles: ['super_admin'], section: 'Actes administratifs' },
   { libelle: 'Mes actes', court: 'Actes', vers: '/actes', icone: FileStack, roles: ['doctorant'], section: 'Mon espace', enBas: true },
-  { libelle: 'Comptes', vers: '/comptes', icone: UserCog, roles: ['super_admin'], section: 'Administration' },
+  { libelle: 'Utilisateurs', vers: '/utilisateurs', icone: UserCog, roles: ['super_admin'], section: 'Administration' },
+  { libelle: 'Paramètres', vers: '/parametres', icone: Settings2, roles: ['super_admin'], section: 'Administration' },
   { libelle: 'Années universitaires', court: 'Années', vers: '/annees', icone: CalendarRange, roles: ['super_admin'], section: 'Administration' },
   { libelle: 'Mon compte', court: 'Compte', vers: '/mon-compte', icone: CircleUserRound, roles: ['super_admin', 'membre_ead', 'doctorant'], section: 'Mon espace' },
 ]

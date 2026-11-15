@@ -27,7 +27,6 @@ class InscriptionFactory extends Factory
             'type' => TypeInscription::Premiere,
             'est_derogation' => false,
             'statut' => StatutInscription::Validee,
-            'montant_du' => 1_500_000,
             'date_inscription' => now()->toDateString(),
         ];
     }

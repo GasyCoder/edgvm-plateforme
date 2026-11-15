@@ -49,7 +49,6 @@ class InscriptionRequest extends FormRequest
             'motif_derogation' => ['nullable', 'required_if:est_derogation,true', 'string', 'max:2000'],
             'decision_derogation' => ['nullable', 'string', 'max:190'],
             'date_decision_derogation' => ['nullable', 'required_with:decision_derogation', 'date'],
-            'montant_du' => ['required', 'integer', 'min:0', 'max:100000000'],
             'statut' => ['required', Rule::enum(StatutInscription::class)],
             'date_inscription' => ['nullable', 'date'],
         ];
@@ -101,7 +100,6 @@ class InscriptionRequest extends FormRequest
     {
         return [
             'annee_universitaire_id' => 'année universitaire',
-            'montant_du' => 'montant des droits',
             'motif_derogation' => 'motif de la dérogation',
             'decision_derogation' => 'référence de la décision',
             'date_decision_derogation' => 'date de la décision',

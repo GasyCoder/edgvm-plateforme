@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CalendarX2, TriangleAlert, UserPlus, Users } from '@lucide/vue'
+import { CalendarX2, TriangleAlert, UserPlus, Users, Wallet } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -11,6 +11,9 @@ interface TableauDeBord {
   inscrits: number
   par_niveau: { D1: number, D2: number, D3: number, derogation: number }
   derogations_sans_decision: number
+  doctorants_en_retard: number
+  reste_a_recouvrer: number | null
+  encaisse_annee: number | null
   actifs_sans_inscription: number
   par_equipe: Array<{ id: number, sigle: string, nom: string, doctorants: number }>
 }
@@ -75,6 +78,24 @@ const niveaux = computed(() => data.value
           <p class="mt-3 text-3xl font-bold tabular-nums text-brand-900">{{ data.derogations_sans_decision }}</p>
           <p class="text-sm text-muted-foreground">Dérogations sans décision</p>
         </NuxtLink>
+      </div>
+
+      <div class="grid gap-4 sm:grid-cols-3">
+        <NuxtLink :to="estSuperAdmin ? '/paiements?situation=en_retard' : '/doctorants'" class="rounded-md border bg-white p-5 transition-colors hover:border-red-300" :class="data.doctorants_en_retard ? 'border-red-200' : 'border-gray-300'">
+          <Wallet class="size-5" :class="data.doctorants_en_retard ? 'text-destructive' : 'text-muted-foreground'" />
+          <p class="mt-3 text-3xl font-bold tabular-nums" :class="data.doctorants_en_retard ? 'text-destructive' : 'text-brand-900'">{{ data.doctorants_en_retard }}</p>
+          <p class="text-sm text-muted-foreground">En retard de paiement</p>
+        </NuxtLink>
+        <template v-if="estSuperAdmin">
+          <NuxtLink to="/paiements" class="rounded-md border border-gray-300 bg-white p-5 transition-colors hover:border-brand-400">
+            <p class="text-sm text-muted-foreground">Reste à recouvrer</p>
+            <p class="mt-2 text-2xl font-bold tabular-nums text-brand-900">{{ formaterMontant(data.reste_a_recouvrer) }}</p>
+          </NuxtLink>
+          <NuxtLink to="/paiements?onglet=journal" class="rounded-md border border-gray-300 bg-white p-5 transition-colors hover:border-brand-400">
+            <p class="text-sm text-muted-foreground">Encaissé cette année</p>
+            <p class="mt-2 text-2xl font-bold tabular-nums text-leaf-600">{{ formaterMontant(data.encaisse_annee) }}</p>
+          </NuxtLink>
+        </template>
       </div>
 
       <Card>

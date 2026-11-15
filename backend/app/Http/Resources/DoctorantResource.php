@@ -5,6 +5,8 @@ namespace App\Http\Resources;
 use App\Enums\NiveauDoctorat;
 use App\Enums\StatutInscription;
 use App\Models\Doctorant;
+use App\Models\User;
+use App\Support\SituationFinanciere;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -46,6 +48,7 @@ class DoctorantResource extends JsonResource
             'co_encadrant' => $this->co_encadrant,
             'statut' => $this->statut->value,
             'statut_libelle' => $this->statut->libelle(),
+            'est_boursier' => $this->est_boursier,
             'visible_annuaire' => $this->visible_annuaire,
             'compte' => $this->when($user->estSuperAdmin() && $this->relationLoaded('user'), fn () => [
                 'id' => $this->user_id,
@@ -63,10 +66,25 @@ class DoctorantResource extends JsonResource
                 $user->estSuperAdmin() && $this->relationLoaded('inscriptions'),
                 fn () => $this->prochaineInscription(),
             ),
+            'paiement' => $this->situationPaiement($user, $personnel),
+            'photo_url' => $this->photo_chemin ? '/telechargements/doctorants/'.$this->uuid.'/photo?v='.substr(md5($this->photo_chemin), 0, 8) : null,
+            'url_carte' => $this->when($user->can('update', $this->resource), '/telechargements/doctorants/'.$this->uuid.'/carte.pdf'),
             'peut' => [
                 'modifier' => $user->can('update', $this->resource),
             ],
         ];
+    }
+
+    /**
+     * Situation de paiement : détaillée pour l'administration et le doctorant, statut seul pour un membre d'équipe.
+     *
+     * @return array<string, mixed>
+     */
+    private function situationPaiement(User $user, bool $personnel): array
+    {
+        $situation = SituationFinanciere::pour($this->resource);
+
+        return $personnel ? $situation : ['statut' => $situation['statut'], 'statut_libelle' => $situation['statut_libelle']];
     }
 
     /**

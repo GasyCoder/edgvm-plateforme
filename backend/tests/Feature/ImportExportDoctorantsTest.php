@@ -2,6 +2,7 @@
 
 use App\Models\Doctorant;
 use App\Models\EquipeAccueil;
+use App\Models\FraisDoctorant;
 use App\Models\Inscription;
 use App\Models\User;
 use App\Notifications\InvitationPlateforme;
@@ -22,7 +23,8 @@ it('exports the filtered list as an Excel friendly CSV', function (): void {
     $annee = anneeCourante();
     $equipe = EquipeAccueil::query()->where('sigle', 'EAD 2')->sole();
     $doctorant = Doctorant::factory()->dansEquipe($equipe)->create(['nom' => 'Rabe', 'prenoms' => 'Fanja', 'date_naissance' => '1991-04-02']);
-    Inscription::factory()->for($doctorant)->for($annee, 'anneeUniversitaire')->create(['montant_du' => 1_200_000]);
+    Inscription::factory()->for($doctorant)->for($annee, 'anneeUniversitaire')->create();
+    FraisDoctorant::factory()->for($doctorant)->create(['montant' => 1_200_000, 'montant_paye' => 200_000]);
     Doctorant::factory()->create(['nom' => 'Autre']);
 
     $reponse = $this->actingAs(superAdmin())->get(route('doctorants.export', ['equipe' => $equipe->id]))->assertOk();
@@ -32,7 +34,7 @@ it('exports the filtered list as an Excel friendly CSV', function (): void {
         ->and($contenu)->toStartWith("\xEF\xBB\xBFMatricule;Nom;Prénoms")
         ->and($contenu)->toContain('RABE;Fanja')
         ->and($contenu)->toContain('02/04/1991')
-        ->and($contenu)->toContain(';D1;Validée;1200000')
+        ->and($contenu)->toContain(';D1;Validée;1200000;200000;1000000;Partiel')
         ->and($contenu)->not->toContain('AUTRE');
 });
 
@@ -70,6 +72,7 @@ it('provides an import template that the import accepts as is', function (): voi
 it('simulates an import without saving anything, then imports the valid lines', function (): void {
     Notification::fake();
     anneeCourante();
+    tarifsInscription();
     Doctorant::factory()->for(User::factory()->doctorant()->state(['email' => 'deja@edgvm.mg']))->create();
     $csv = "Nom;Prénoms;Sexe;Né le;E-mail;Téléphone;EAD;Niveau;Droits (Ar)\n"
         ."Rasoa;Mialy;Femme;05/06/1992;Mialy@Exemple.mg;034 11 222 33;ead1;D2;1 500 000\n"
@@ -107,7 +110,7 @@ it('simulates an import without saving anything, then imports the valid lines', 
         ->and($importe->user->telephone)->toBe('+261341122233')
         ->and($importe->equipeAccueil->sigle)->toBe('EAD 1')
         ->and($importe->inscriptions()->sole()->niveau->value)->toBe('D2')
-        ->and($importe->inscriptions()->sole()->montant_du)->toBe(1_500_000);
+        ->and($importe->frais()->sole()->montant)->toBe(1_200_000);
     Notification::assertSentTo($importe->user, InvitationPlateforme::class);
 });
 
@@ -133,4 +136,49 @@ it('reserves the import to the school', function (): void {
     $this->actingAs(User::factory()->membreEad()->create())
         ->post(route('doctorants.import'), ['fichier' => fichierCsv("Nom;E-mail;Équipe\nA;a@b.mg;EAD 1\n")], ['Accept' => 'application/json'])
         ->assertForbidden();
+});
+
+it('exports the filtered list as a real Excel workbook with numeric amounts', function (): void {
+    $partiel = Doctorant::factory()->create(['nom' => 'Rabe & fils']);
+    FraisDoctorant::factory()->for($partiel)->create(['montant' => 700_000, 'montant_paye' => 300_000]);
+    $aPayer = Doctorant::factory()->create(['nom' => 'Ignore']);
+    FraisDoctorant::factory()->for($aPayer)->create(['montant' => 700_000]);
+
+    $reponse = $this->actingAs(superAdmin())->get(route('doctorants.export-excel', ['paiement' => 'partiel']))->assertOk();
+    $chemin = tempnam(sys_get_temp_dir(), 'test');
+    file_put_contents($chemin, $reponse->streamedContent());
+    $archive = new ZipArchive;
+    $archive->open($chemin);
+    $feuille = $archive->getFromName('xl/worksheets/sheet1.xml');
+    $classeur = $archive->getFromName('xl/workbook.xml');
+    $archive->close();
+    unlink($chemin);
+
+    expect($reponse->headers->get('content-disposition'))->toContain('.xlsx')
+        ->and($reponse->headers->get('content-type'))->toContain('spreadsheetml')
+        ->and($classeur)->toContain('name="Doctorants"')
+        ->and($feuille)->toContain('RABE &amp; FILS')
+        ->and($feuille)->toContain('<v>700000</v>')
+        ->and($feuille)->toContain('<v>400000</v>')
+        ->and($feuille)->toContain('Partiel')
+        ->and($feuille)->not->toContain('IGNORE')
+        ->and(simplexml_load_string($feuille))->not->toBeFalse();
+
+    $this->actingAs(Doctorant::factory()->create()->user)->get(route('doctorants.export-excel'))->assertForbidden();
+});
+
+it('reads the scholarship column of an import and writes it in the export', function (): void {
+    Notification::fake();
+    $csv = "Nom;E-mail;Équipe;Boursier\n"
+        ."Rasoa;rasoa@exemple.mg;EAD 1;Oui\n"
+        ."Bema;bema@exemple.mg;EAD 1;non\n"
+        ."Kely;kely@exemple.mg;EAD 1;peut-être\n";
+    $admin = superAdmin();
+
+    $this->actingAs($admin)->post(route('doctorants.import'), ['fichier' => fichierCsv($csv)])->assertOk()->assertJsonPath('data.valides', 2);
+
+    expect(Doctorant::query()->where('nom', 'Rasoa')->sole()->est_boursier)->toBeTrue()
+        ->and(Doctorant::query()->where('nom', 'Bema')->sole()->est_boursier)->toBeFalse();
+    expect($this->actingAs($admin)->get(route('doctorants.export', ['boursier' => 1]))->streamedContent())
+        ->toContain(';Boursier;')->toContain('RASOA')->not->toContain('BEMA');
 });

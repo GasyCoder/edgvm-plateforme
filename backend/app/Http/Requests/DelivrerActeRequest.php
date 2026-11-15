@@ -37,6 +37,7 @@ class DelivrerActeRequest extends FormRequest
             'doctorants' => [$lot ? 'required' : 'prohibited', 'array', 'min:1', 'max:300'],
             'doctorants.*' => ['string', 'distinct', Rule::exists('doctorants', 'uuid')],
             'champs' => ['nullable', 'array'],
+            'doublons' => ['nullable', Rule::in($lot ? ['confirmer', 'ignorer'] : ['confirmer'])],
         ];
 
         foreach ($modele?->champs ?? [] as $champ) {

@@ -48,26 +48,7 @@
 @foreach ($pages as $page)
     @php($acte = $page['acte'])
     <div class="page{{ $loop->last ? ' derniere' : '' }}{{ $page['compact'] ? ' compact' : '' }}">
-        <table class="entete">
-            <tr>
-                <td class="gauche">
-                    @if ($page['logo_gauche'])<img src="{{ $page['logo_gauche'] }}" style="height: 1.45cm" alt="">@endif
-                    <div class="legende">Université de Mahajanga</div>
-                </td>
-                <td class="centre">
-                    <div class="pays">REPOBLIKAN'I MADAGASIKARA</div>
-                    <div class="devise">Fitiavana - Tanindrazana - Fandrosoana</div>
-                    <div class="etoiles">************************************</div>
-                    <div class="universite">UNIVERSITE DE MAHAJANGA</div>
-                    <div class="etoiles">************************************</div>
-                    <div class="ecole">ECOLE DOCTORALE GENIE DU VIVANT ET MODELISATION</div>
-                    <div class="etoiles">****************************************</div>
-                </td>
-                <td class="droite">
-                    @if ($page['logo_droite'])<img src="{{ $page['logo_droite'] }}" style="height: 2cm" alt="">@endif
-                </td>
-            </tr>
-        </table>
+        @include('pdf.entete', ['logo_gauche' => $page['logo_gauche'], 'logo_droite' => $page['logo_droite']])
 
         <h1 class="titre">{{ $acte->titre }}</h1>
 

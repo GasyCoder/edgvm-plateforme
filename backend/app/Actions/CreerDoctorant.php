@@ -18,7 +18,7 @@ use Illuminate\Support\Str;
  */
 class CreerDoctorant
 {
-    public function __construct(private EnvoyerInvitation $envoyerInvitation) {}
+    public function __construct(private EnvoyerInvitation $envoyerInvitation, private AppliquerFraisInscription $appliquerFrais) {}
 
     /**
      * @param  array<string, mixed>  $donnees  données validées (DoctorantRequest ou ligne d'import)
@@ -42,12 +42,13 @@ class CreerDoctorant
             ]);
 
             if (filled($donnees['inscription'] ?? null)) {
-                $doctorant->inscriptions()->create([
+                $inscription = $doctorant->inscriptions()->create([
                     ...$donnees['inscription'],
                     'type' => TypeInscription::Premiere,
                     'statut' => StatutInscription::Validee,
                     'date_inscription' => now()->toDateString(),
                 ]);
+                ($this->appliquerFrais)($inscription, auth()->user());
             }
 
             return $doctorant;

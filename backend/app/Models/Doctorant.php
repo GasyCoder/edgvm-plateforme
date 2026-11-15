@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'user_id', 'matricule', 'nom', 'prenoms', 'genre', 'date_naissance', 'lieu_naissance', 'nationalite',
-    'numero_piece', 'adresse', 'equipe_accueil_id', 'sujet_these', 'directeur_these', 'co_directeur', 'co_encadrant', 'statut', 'visible_annuaire', 'observation',
+    'numero_piece', 'adresse', 'equipe_accueil_id', 'sujet_these', 'directeur_these', 'co_directeur', 'co_encadrant', 'est_boursier', 'statut', 'visible_annuaire', 'observation',
 ])]
 class Doctorant extends Model
 {
@@ -41,6 +41,7 @@ class Doctorant extends Model
         return [
             'date_naissance' => 'date',
             'statut' => StatutDoctorant::class,
+            'est_boursier' => 'boolean',
             'visible_annuaire' => 'boolean',
         ];
     }
@@ -67,6 +68,32 @@ class Doctorant extends Model
     public function inscriptions(): HasMany
     {
         return $this->hasMany(Inscription::class);
+    }
+
+    /**
+     * @return HasMany<FraisDoctorant, $this>
+     */
+    public function frais(): HasMany
+    {
+        return $this->hasMany(FraisDoctorant::class);
+    }
+
+    /**
+     * @return HasMany<Paiement, $this>
+     */
+    public function paiements(): HasMany
+    {
+        return $this->hasMany(Paiement::class);
+    }
+
+    /**
+     * Doctorants ayant au moins un frais impayé dont l'échéance est passée.
+     *
+     * @param  Builder<Doctorant>  $query
+     */
+    public function scopeEnRetardDePaiement(Builder $query): void
+    {
+        $query->whereHas('frais', fn (Builder $frais) => $frais->enRetard());
     }
 
     /**

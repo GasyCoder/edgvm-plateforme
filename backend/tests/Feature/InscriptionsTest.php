@@ -31,7 +31,6 @@ it('re-registers a student at the next level', function (): void {
     $this->actingAs(superAdmin())->postJson(route('inscriptions.store', $doctorant), [
         'annee_universitaire_id' => $annee->id,
         'niveau' => 'D2',
-        'montant_du' => 1_200_000,
         'statut' => 'validee',
     ])->assertCreated()->assertJsonPath('data.type', 'reinscription')->assertJsonPath('data.niveau_aff', 'D2');
 });
@@ -42,7 +41,7 @@ it('refuses a second registration for the same year', function (): void {
     Inscription::factory()->for($doctorant)->for($annee, 'anneeUniversitaire')->create();
 
     $this->actingAs(superAdmin())->postJson(route('inscriptions.store', $doctorant), [
-        'annee_universitaire_id' => $annee->id, 'niveau' => 'D2', 'montant_du' => 0, 'statut' => 'validee',
+        'annee_universitaire_id' => $annee->id, 'niveau' => 'D2', 'statut' => 'validee',
     ])->assertUnprocessable()->assertJsonValidationErrors(['annee_universitaire_id' => 'Ce doctorant est déjà inscrit pour cette année universitaire.']);
 });
 
@@ -51,7 +50,7 @@ it('requires an exemption after three years', function (): void {
     $annee = anneeCourante();
 
     $this->actingAs(superAdmin())->postJson(route('inscriptions.store', $doctorant), [
-        'annee_universitaire_id' => $annee->id, 'niveau' => 'D3', 'montant_du' => 0, 'statut' => 'validee',
+        'annee_universitaire_id' => $annee->id, 'niveau' => 'D3', 'statut' => 'validee',
     ])->assertUnprocessable()->assertJsonValidationErrors('est_derogation');
 });
 
@@ -65,7 +64,6 @@ it('records an exemption with its reason, pending until the decision is entered'
         'niveau' => 'D3',
         'est_derogation' => true,
         'motif_derogation' => 'Travaux de terrain retardés par la saison des pluies',
-        'montant_du' => 1_500_000,
         'statut' => 'en_attente',
     ])->assertCreated()->assertJsonPath('data.derogation_en_attente', true);
 
@@ -76,7 +74,6 @@ it('records an exemption with its reason, pending until the decision is entered'
         'motif_derogation' => 'Travaux de terrain retardés par la saison des pluies',
         'decision_derogation' => 'Décision n° 08/2026/EDGVM',
         'date_decision_derogation' => '2026-11-10',
-        'montant_du' => 1_500_000,
         'statut' => 'validee',
     ])->assertOk()->assertJsonPath('data.derogation_en_attente', false);
 
@@ -89,7 +86,7 @@ it('validates exemptions', function (array $valeurs, string $champ): void {
     $doctorant = doctorantEnFinDeDuree();
 
     $this->actingAs(superAdmin())->postJson(route('inscriptions.store', $doctorant), [
-        'annee_universitaire_id' => anneeCourante()->id, 'montant_du' => 0, 'statut' => 'validee', 'est_derogation' => true, ...$valeurs,
+        'annee_universitaire_id' => anneeCourante()->id, 'statut' => 'validee', 'est_derogation' => true, ...$valeurs,
     ])->assertUnprocessable()->assertJsonValidationErrors($champ);
 })->with([
     'sans motif' => [['niveau' => 'D3'], 'motif_derogation'],
@@ -99,7 +96,7 @@ it('validates exemptions', function (array $valeurs, string $champ): void {
 
 it('lets only the school register students', function (): void {
     $doctorant = Doctorant::factory()->create();
-    $donnees = ['annee_universitaire_id' => anneeCourante()->id, 'niveau' => 'D1', 'montant_du' => 0, 'statut' => 'validee'];
+    $donnees = ['annee_universitaire_id' => anneeCourante()->id, 'niveau' => 'D1', 'statut' => 'validee'];
 
     $this->actingAs($doctorant->user)->postJson(route('inscriptions.store', $doctorant), $donnees)->assertForbidden();
     $this->actingAs(User::factory()->membreEad()->create())->postJson(route('inscriptions.store', $doctorant), $donnees)->assertForbidden();

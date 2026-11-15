@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -91,6 +92,41 @@ class Acte extends Model
     /**
      * Numéro suivant pour l'année : EDGVM/2026/000123 (à appeler dans une transaction).
      */
+    /**
+     * Actes encore valides de ce modèle pour ces doctorants (pour la même année si le modèle dépend de l'inscription) :
+     * la scolarité est prévenue avant d'en délivrer un second.
+     *
+     * @param  array<int, int>  $idsDoctorants
+     * @return Collection<int, Acte>
+     */
+    public static function dejaDelivres(ModeleActe $modele, array $idsDoctorants, ?AnneeUniversitaire $annee): Collection
+    {
+        return static::query()
+            ->with(['doctorant', 'anneeUniversitaire'])
+            ->where('modele_acte_id', $modele->id)
+            ->whereIn('doctorant_id', $idsDoctorants)
+            ->whereNull('annule_le')
+            ->when($modele->exige_inscription && $annee, fn (Builder $q) => $q->where('annee_universitaire_id', $annee->id))
+            ->latest('delivre_le')
+            ->get()
+            ->unique('doctorant_id')
+            ->values();
+    }
+
+    /**
+     * @return array{doctorant: string, matricule: string, numero: string, delivre_le: string, annee: ?string}
+     */
+    public function resumeDoublon(): array
+    {
+        return [
+            'doctorant' => $this->doctorant->nomComplet(),
+            'matricule' => $this->doctorant->matricule,
+            'numero' => $this->numero,
+            'delivre_le' => $this->delivre_le->toIso8601String(),
+            'annee' => $this->anneeUniversitaire?->libelle,
+        ];
+    }
+
     public static function prochainNumero(?int $annee = null): string
     {
         $prefixe = 'EDGVM/'.($annee ?? now()->year).'/';

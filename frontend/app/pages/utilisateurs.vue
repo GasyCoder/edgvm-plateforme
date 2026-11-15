@@ -13,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { Compte, Pagine } from '~/types'
 
 definePageMeta({ roles: ['super_admin'] })
-useHead({ title: 'Comptes' })
+useHead({ title: 'Utilisateurs' })
 
 const api = useApi()
 const { utilisateur } = useAuth()
@@ -58,7 +58,7 @@ async function enregistrer() {
     await (modifie.value
       ? api(`/api/comptes/${modifie.value.id}`, { method: 'PUT', body: corps })
       : api('/api/comptes', { method: 'POST', body: corps }))
-    toast.success(modifie.value ? 'Compte modifié.' : `Compte créé${formulaire.envoyer_invitation ? ', lien d\'accès envoyé' : ''}.`)
+    toast.success(modifie.value ? 'Utilisateur modifié.' : `Utilisateur créé${formulaire.envoyer_invitation ? ', lien d\'accès envoyé' : ''}.`)
     ouvert.value = false
     await refresh()
   }
@@ -87,9 +87,9 @@ async function envoyerLien(compte: Compte) {
 
 <template>
   <div>
-    <EnTetePage titre="Comptes" description="Accès à la plateforme. Les comptes des doctorants se créent avec leur dossier.">
+    <EnTetePage titre="Utilisateurs" description="Personnes qui ont accès à la plateforme. Les doctorants sont ajoutés avec leur dossier.">
       <template #actions>
-        <Button @click="ouvrir()"><UserPlus /> Nouveau compte</Button>
+        <Button @click="ouvrir()"><UserPlus /> Nouvel utilisateur</Button>
       </template>
     </EnTetePage>
 
@@ -108,7 +108,7 @@ async function envoyerLien(compte: Compte) {
 
     <div class="-mx-3 border-y border-gray-300 bg-white sm:mx-0 sm:rounded-md sm:border-x">
       <div v-if="status === 'pending' && !data" class="p-5"><SqueletteListe :lignes="5" class="border-none" /></div>
-      <div v-else-if="data && !data.data.length" class="p-6"><EtatVide titre="Aucun compte" class="border-none" /></div>
+      <div v-else-if="data && !data.data.length" class="p-6"><EtatVide titre="Aucun utilisateur" class="border-none" /></div>
       <div v-else-if="data" class="overflow-x-auto">
         <table class="w-full border-collapse">
           <thead>
@@ -160,7 +160,7 @@ async function envoyerLien(compte: Compte) {
     <Dialog v-model:open="ouvert">
       <DialogContent class="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{{ modifie ? 'Modifier le compte' : 'Nouveau compte' }}</DialogTitle>
+          <DialogTitle>{{ modifie ? 'Modifier l\'utilisateur' : 'Nouvel utilisateur' }}</DialogTitle>
           <DialogDescription>{{ modifie?.role === 'doctorant' ? 'Compte de doctorant : le rôle ne change pas.' : 'Administration de l\'École ou membre d\'une équipe d\'accueil.' }}</DialogDescription>
         </DialogHeader>
         <form id="form-compte" class="grid gap-4" novalidate @submit.prevent="enregistrer">

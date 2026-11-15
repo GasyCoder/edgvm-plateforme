@@ -11,6 +11,6 @@ useHead({ title: 'Nouveau doctorant' })
       <ArrowLeft class="size-4" /> Doctorants
     </NuxtLink>
     <EnTetePage titre="Nouveau doctorant" description="Compte, dossier et première inscription, en cinq étapes. Le brouillon est gardé si vous quittez la page." />
-    <AssistantNouveauDoctorant />
+    <AssistantDoctorant />
   </div>
 </template>

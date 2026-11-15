@@ -20,6 +20,8 @@ Module en place : à faire évoluer, pas à recréer.
 
 ## Règles
 
+- Avant de délivrer un acte qu'un doctorant a déjà (même modèle, non annulé, même année si le modèle exige l'inscription), l'API répond 409 `deja_delivre` avec la liste `deja`. L'interface demande confirmation, puis renvoie `doublons: confirmer` (ou, pour un lot, `ignorer` pour ne délivrer qu'aux autres). `Acte::dejaDelivres()` fait la recherche.
+- Carte de doctorat : `App\Support\CarteDoctorat` + vue `cartes/carte.blade.php` (format 17 x 10 cm, une carte par page), photo du doctorant via `PhotoDoctorant` (disque privé `local`, dossier `photos/`, JPEG 450 x 600). Routes `/telechargements/doctorants/{uuid}/carte.pdf` et `/telechargements/cartes-doctorat.pdf?ids[]=`. Textes ministère et arrêté modifiables par les réglages `carte.ministere` et `carte.arrete`.
 - Un acte délivré ne se modifie pas et ne se supprime pas : on l'annule (`annule_le`, `motif_annulation`, `annule_par`) et on en délivre un nouveau. Le PDF d'un acte annulé porte un filigrane « ANNULÉ ».
 - La page `/verifier/{code}` n'affiche que le type, le numéro, le nom et la date : jamais d'autre donnée personnelle.
 - Le HTML des modèles passe toujours par `NettoyeurHtml` (paragraphes, gras, italique, souligné, listes, alignement). Pas d'image ni de lien dans le texte.

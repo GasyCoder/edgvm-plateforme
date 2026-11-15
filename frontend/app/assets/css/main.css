@@ -147,7 +147,9 @@
     }
 
     /* Une colonne de grille peut toujours rétrécir : un long texte (e-mail, titre tronqué) ne fait plus déborder la page. */
-    main .grid > * {
+    main .grid > *,
+    [role='dialog'] .grid > *,
+    [role='alertdialog'] .grid > * {
         min-width: 0;
     }
 

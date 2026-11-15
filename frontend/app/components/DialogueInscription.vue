@@ -30,7 +30,6 @@ const vide = () => ({
   motif_derogation: '',
   decision_derogation: '',
   date_decision_derogation: '',
-  montant_du: 0 as number,
   statut: 'validee' as string,
 })
 const formulaire = reactive(vide())
@@ -47,7 +46,6 @@ watch(ouvert, (estOuvert) => {
         motif_derogation: inscription.motif_derogation ?? '',
         decision_derogation: inscription.decision_derogation ?? '',
         date_decision_derogation: inscription.date_decision_derogation ?? '',
-        montant_du: inscription.montant_du ?? 0,
         statut: inscription.statut,
       }
     : {
@@ -55,7 +53,6 @@ watch(ouvert, (estOuvert) => {
         annee_universitaire_id: anneeCourante.value?.id ?? null,
         niveau: props.doctorant.prochaine_inscription?.niveau ?? 'D1',
         est_derogation: props.doctorant.prochaine_inscription?.est_derogation ?? false,
-        montant_du: props.doctorant.inscriptions?.[0]?.montant_du ?? 0,
       })
 })
 
@@ -158,9 +155,7 @@ async function supprimer() {
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2">
-          <ChampFormulaire libelle="Droits d'inscription (Ar)" pour="montant" :erreur="erreurs.montant_du" requis>
-            <Input id="montant" v-model.number="formulaire.montant_du" type="number" min="0" step="1000" inputmode="numeric" />
-          </ChampFormulaire>
+
           <ChampFormulaire libelle="Statut" pour="statut" :erreur="erreurs.statut" requis>
             <Select v-model="formulaire.statut">
               <SelectTrigger id="statut" class="w-full"><SelectValue /></SelectTrigger>
@@ -172,6 +167,7 @@ async function supprimer() {
             </Select>
           </ChampFormulaire>
         </div>
+        <p v-if="!inscription" class="rounded-md bg-gray-50 p-3 text-xs text-slate-500">Les droits d'inscription et les autres frais automatiques sont ajoutés selon les tarifs des Paramètres.</p>
       </form>
 
       <DialogFooter class="gap-2 sm:justify-between">

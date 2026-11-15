@@ -7,7 +7,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\DoctorantRequest;
 use App\Http\Resources\DoctorantResource;
 use App\Models\Doctorant;
+use App\Support\SituationFinanciere;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
@@ -34,32 +36,58 @@ class DoctorantController extends Controller
      *
      * @return Builder<Doctorant>
      */
-    public static function requeteFiltree(Request $request): Builder
+    public static function requeteFiltree(Request $request, bool $avecFiltreNiveau = true): Builder
     {
-        return Doctorant::query()
+        return SituationFinanciere::avecTotaux(Doctorant::query())
             ->visiblesPour($request->user())
             ->with(['user', 'equipeAccueil', 'inscriptionCourante.anneeUniversitaire'])
             ->recherche($request->string('recherche')->trim()->toString())
             ->when($request->integer('equipe'), fn ($requete, int $equipe) => $requete->where('equipe_accueil_id', $equipe))
             ->when($request->string('statut')->toString(), fn ($requete, string $statut) => $requete->where('statut', $statut))
-            ->niveauCourant($request->string('niveau')->toString() ?: null)
+            ->niveauCourant($avecFiltreNiveau ? ($request->string('niveau')->toString() ?: null) : null)
+            ->when($request->filled('boursier'), fn ($requete) => $requete->where('est_boursier', $request->boolean('boursier')))
             ->when($request->boolean('sans_inscription'), fn ($requete) => $requete->whereDoesntHave('inscriptionCourante'))
+            ->when($request->input('paiement'), fn (Builder $requete, string $situation) => PaiementController::filtrerSituation($requete, $situation))
             ->orderBy('nom')
             ->orderBy('prenoms');
+    }
+
+    /**
+     * Compteurs des cartes de la liste : doctorants par niveau de l'année courante (D1, D2, D3, dérogation),
+     * avec tous les filtres de la liste sauf le niveau, pour que les cartes restent comparables quand on en choisit une.
+     *
+     * @return array{total: int, niveaux: array{D1: int, D2: int, D3: int, derogation: int}, boursiers: int}
+     */
+    public function compteurs(Request $request): array
+    {
+        $this->authorize('viewAny', Doctorant::class);
+
+        $base = self::requeteFiltree($request, avecFiltreNiveau: false);
+        $compter = fn (callable $filtre): int => tap($base->clone(), $filtre)->count();
+
+        return [
+            'total' => $base->clone()->count(),
+            'niveaux' => collect(['D1', 'D2', 'D3', 'derogation'])
+                ->mapWithKeys(fn (string $niveau) => [$niveau => $compter(fn (Builder $q) => $q->niveauCourant($niveau))])
+                ->all(),
+            'boursiers' => $compter(fn (Builder $q) => $q->where('est_boursier', true)),
+        ];
     }
 
     public function show(Doctorant $doctorant): DoctorantResource
     {
         $this->authorize('view', $doctorant);
 
-        return new DoctorantResource($doctorant->load(['user', 'equipeAccueil', 'inscriptions.anneeUniversitaire', 'inscriptionCourante.anneeUniversitaire']));
+        $doctorant = SituationFinanciere::avecTotaux(Doctorant::query()->whereKey($doctorant->id))->firstOrFail();
+
+        return new DoctorantResource($doctorant->load(['user', 'equipeAccueil', 'inscriptions.anneeUniversitaire', 'inscriptions.frais', 'inscriptionCourante.anneeUniversitaire']));
     }
 
     /**
      * Crée le compte, le dossier et, si demandé, la première inscription ; envoie le lien de premier accès.
      * Avec « etape », vérifie seulement les champs d'une étape de l'assistant (rien n'est enregistré).
      */
-    public function store(DoctorantRequest $request, CreerDoctorant $creerDoctorant): DoctorantResource|Response
+    public function store(DoctorantRequest $request, CreerDoctorant $creerDoctorant): JsonResponse|Response
     {
         if ($request->estVerificationEtape()) {
             return response()->noContent();
@@ -67,11 +95,15 @@ class DoctorantController extends Controller
 
         $doctorant = $creerDoctorant($request->validated(), $request->boolean('envoyer_invitation', true));
 
-        return $this->show($doctorant);
+        return $this->show($doctorant)->response()->setStatusCode(201);
     }
 
-    public function update(DoctorantRequest $request, Doctorant $doctorant): DoctorantResource
+    public function update(DoctorantRequest $request, Doctorant $doctorant): DoctorantResource|Response
     {
+        if ($request->estVerificationEtape()) {
+            return response()->noContent();
+        }
+
         DB::transaction(function () use ($request, $doctorant): void {
             $doctorant->update($request->safe()->except(['email', 'telephone', 'envoyer_invitation']));
             $doctorant->user->update([

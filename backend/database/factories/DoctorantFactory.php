@@ -32,6 +32,7 @@ class DoctorantFactory extends Factory
             'equipe_accueil_id' => EquipeAccueil::factory(),
             'sujet_these' => ucfirst(fake()->sentence(10)),
             'statut' => StatutDoctorant::Actif,
+            'est_boursier' => false,
             'visible_annuaire' => false,
         ];
     }

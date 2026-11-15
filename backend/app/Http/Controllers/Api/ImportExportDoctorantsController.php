@@ -4,17 +4,19 @@ namespace App\Http\Controllers\Api;
 
 use App\Actions\AnalyserImportDoctorants;
 use App\Actions\CreerDoctorant;
-use App\Enums\StatutInscription;
 use App\Http\Controllers\Controller;
 use App\Models\AnneeUniversitaire;
 use App\Models\Doctorant;
 use App\Support\FichierCsv;
+use App\Support\FichierExcel;
+use App\Support\SituationFinanciere;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Export de la liste (filtres appliqués) et import en masse des doctorants (fichier CSV, simulation d'abord).
+ * Export de la liste (filtres appliqués, Excel ou CSV) et import en masse des doctorants (fichier CSV, simulation d'abord).
  */
 class ImportExportDoctorantsController extends Controller
 {
@@ -23,18 +25,37 @@ class ImportExportDoctorantsController extends Controller
      */
     public function exporter(Request $request): StreamedResponse
     {
+        [$entetes, $lignes] = $this->donneesExport($request);
+
+        return FichierCsv::telecharger('doctorants-edgvm-'.now()->format('Y-m-d').'.csv', $entetes, $lignes);
+    }
+
+    public function exporterExcel(Request $request): StreamedResponse
+    {
+        [$entetes, $lignes] = $this->donneesExport($request);
+
+        return FichierExcel::telecharger('doctorants-edgvm-'.now()->format('Y-m-d').'.xlsx', $entetes, $lignes, 'Doctorants');
+    }
+
+    /**
+     * En-têtes et lignes de l'export, filtres de la liste appliqués.
+     *
+     * @return array{0: array<int, string>, 1: Collection<int, array<int, mixed>>}
+     */
+    private function donneesExport(Request $request): array
+    {
         $this->authorize('viewAny', Doctorant::class);
         $complet = $request->user()->estSuperAdmin();
         $annee = AnneeUniversitaire::courante();
 
-        $doctorants = DoctorantController::requeteFiltree($request)
+        $doctorants = SituationFinanciere::avecTotaux(DoctorantController::requeteFiltree($request))
             ->when($request->filled('ids'), fn ($requete) => $requete->whereIn('uuid', (array) $request->input('ids')))
             ->get();
 
-        $entetes = ['Matricule', 'Nom', 'Prénoms', 'Genre', 'E-mail', 'Téléphone', 'Équipe', 'Sujet de thèse', 'Statut', 'Niveau '.($annee?->libelle ?? ''), 'Inscription'];
+        $entetes = ['Matricule', 'Nom', 'Prénoms', 'Genre', 'E-mail', 'Téléphone', 'Équipe', 'Sujet de thèse', 'Boursier', 'Statut', 'Niveau '.($annee?->libelle ?? ''), 'Inscription'];
         if ($complet) {
             array_splice($entetes, 4, 0, ['Date de naissance', 'Lieu de naissance', 'Nationalité', 'CIN ou passeport', 'Adresse']);
-            $entetes[] = 'Droits (Ar)';
+            array_push($entetes, 'Dû (Ar)', 'Payé (Ar)', 'Reste (Ar)', 'Paiement');
         }
 
         $lignes = $doctorants->map(function (Doctorant $doctorant) use ($complet): array {
@@ -48,6 +69,7 @@ class ImportExportDoctorantsController extends Controller
                 $doctorant->user->telephone,
                 $doctorant->equipeAccueil?->sigle,
                 $doctorant->sujet_these,
+                $doctorant->est_boursier ? 'Oui' : 'Non',
                 $doctorant->statut->libelle(),
                 $inscription?->niveauAffiche(),
                 $inscription?->statut->libelle() ?? 'Non inscrit',
@@ -61,13 +83,14 @@ class ImportExportDoctorantsController extends Controller
                     $doctorant->numero_piece,
                     $doctorant->adresse,
                 ]);
-                $ligne[] = $inscription && $inscription->statut !== StatutInscription::Annulee ? $inscription->montant_du : null;
+                $situation = SituationFinanciere::pour($doctorant);
+                array_push($ligne, $situation['du'], $situation['paye'], $situation['reste'], $situation['statut_libelle']);
             }
 
             return $ligne;
         });
 
-        return FichierCsv::telecharger('doctorants-edgvm-'.now()->format('Y-m-d').'.csv', $entetes, $lignes);
+        return [$entetes, $lignes];
     }
 
     public function modele(Request $request): StreamedResponse
@@ -76,10 +99,10 @@ class ImportExportDoctorantsController extends Controller
 
         return FichierCsv::telecharger('modele-import-doctorants.csv', [
             'Nom', 'Prénoms', 'Genre', 'Date de naissance', 'Lieu de naissance', 'Nationalité', 'CIN ou passeport', 'Adresse',
-            'E-mail', 'Téléphone', 'Équipe', 'Sujet de thèse', 'Directeur de thèse', 'Co-directeur', 'Matricule', 'Niveau', 'Droits (Ar)',
+            'E-mail', 'Téléphone', 'Équipe', 'Sujet de thèse', 'Directeur de thèse', 'Co-directeur', 'Boursier', 'Matricule', 'Niveau',
         ], [[
             'RAKOTO', 'Jean Marie', 'M', '25/03/1990', 'Mahajanga', 'Malagasy', '401011012345', 'Lot II A 12 Mahajanga',
-            'jean.rakoto@exemple.mg', '034 12 345 67', 'EAD 1', 'Sujet de la thèse', 'Pr RABE Hery', '', '', 'D1', '1500000',
+            'jean.rakoto@exemple.mg', '034 12 345 67', 'EAD 1', 'Sujet de la thèse', 'Pr RABE Hery', '', 'Non', '', 'D1',
         ]]);
     }
 

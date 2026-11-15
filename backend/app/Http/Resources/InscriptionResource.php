@@ -42,7 +42,7 @@ class InscriptionResource extends JsonResource
             'date_decision_derogation' => $this->date_decision_derogation?->toDateString(),
             'statut' => $this->statut->value,
             'statut_libelle' => $this->statut->libelle(),
-            'montant_du' => $this->when($voitMontants, $this->montant_du),
+            'frais' => $this->when($voitMontants && $this->relationLoaded('frais'), fn () => $this->frais->whereNull('annule_le')->sum('montant')),
             'date_inscription' => $this->date_inscription?->toDateString(),
         ];
     }

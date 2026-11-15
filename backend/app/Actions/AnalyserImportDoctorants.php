@@ -37,7 +37,7 @@ class AnalyserImportDoctorants
         'co_encadrant' => 'co_encadrant', 'coencadrant' => 'co_encadrant',
         'matricule' => 'matricule',
         'niveau' => 'niveau',
-        'droits_ar' => 'montant_du', 'droits' => 'montant_du', 'montant' => 'montant_du', 'droits_d_inscription' => 'montant_du',
+        'boursier' => 'est_boursier', 'bourse' => 'est_boursier', 'est_boursier' => 'est_boursier',
     ];
 
     /**
@@ -118,6 +118,15 @@ class AnalyserImportDoctorants
         $donnees['email'] = isset($valeurs['email']) ? mb_strtolower($valeurs['email']) : null;
         $donnees['telephone'] = Telephone::normaliser($valeurs['telephone'] ?? null);
 
+        if (isset($valeurs['est_boursier'])) {
+            $reponse = Str::of($valeurs['est_boursier'])->ascii()->lower()->trim()->toString();
+            $donnees['est_boursier'] = match (true) {
+                in_array($reponse, ['oui', 'o', 'yes', 'y', '1', 'vrai', 'x', 'boursier', 'boursiere'], true) => true,
+                in_array($reponse, ['non', 'n', 'no', '0', 'faux', ''], true) => false,
+                default => $valeurs['est_boursier'],
+            };
+        }
+
         if (isset($valeurs['genre'])) {
             $genre = Str::of($valeurs['genre'])->ascii()->upper()->substr(0, 1)->toString();
             $donnees['genre'] = match ($genre) {
@@ -152,7 +161,6 @@ class AnalyserImportDoctorants
             $donnees['inscription'] = [
                 'annee_universitaire_id' => $annee?->id,
                 'niveau' => mb_strtoupper(str_replace(' ', '', $valeurs['niveau'])),
-                'montant_du' => (int) preg_replace('/\D+/', '', $valeurs['montant_du'] ?? '0'),
             ];
         }
 

@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import { CircleCheck, FileDown, Loader2, Stamp, TriangleAlert } from '@lucide/vue'
+import { CircleCheck, FileDown, FileWarning, Loader2, Stamp, TriangleAlert } from '@lucide/vue'
+import type { FetchError } from 'ofetch'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import type { Acte, ModeleActe, Ressource } from '~/types'
 
+interface Doublon { doctorant: string, matricule: string, numero: string, delivre_le: string, annee: string | null }
 interface Resultat { delivres: Acte[], erreurs: Array<{ doctorant: string, matricule: string, message: string }>, url_pdf: string | null }
 
 /**
@@ -43,11 +46,17 @@ watch(modele, () => {
   modele.value?.champs.forEach((champ) => { champs[champ.cle] = '' })
 })
 
-async function delivrer() {
+/* Acte déjà délivré (même modèle, même année) : la scolarité confirme avant d'en délivrer un second. */
+const doublons = ref<{ message: string, liste: Doublon[] } | null>(null)
+const confirmationDoublon = ref(false)
+
+async function delivrer(choixDoublons?: 'confirmer' | 'ignorer') {
   if (!modele.value) return
   envoi.value = true
   erreurs.value = {}
+  confirmationDoublon.value = false
   const corps = {
+    doublons: choixDoublons,
     modele_acte_id: modele.value.id,
     annee_universitaire_id: modele.value.exige_inscription ? anneeId.value : null,
     champs: Object.fromEntries(Object.entries(champs).filter(([, valeur]) => valeur !== '')),
@@ -68,6 +77,12 @@ async function delivrer() {
     }
   }
   catch (e) {
+    const reponse = e as FetchError<{ code?: string, message?: string, deja?: Doublon[] }>
+    if (reponse?.statusCode === 409 && reponse.data?.code === 'deja_delivre') {
+      doublons.value = { message: reponse.data.message ?? '', liste: reponse.data.deja ?? [] }
+      confirmationDoublon.value = true
+      return
+    }
     erreurs.value = erreursDeValidation(e)
     const message = erreurs.value.doctorant ?? (Object.keys(erreurs.value).length ? 'Vérifiez les champs signalés.' : messageErreur(e))
     toast.error(message)
@@ -105,7 +120,7 @@ async function delivrer() {
         <p v-if="resultat.delivres.length" class="flex items-center gap-2 text-sm text-slate-600"><CircleCheck class="size-4 text-leaf-600" /> Numéros {{ resultat.delivres[0]?.numero }} à {{ resultat.delivres[resultat.delivres.length - 1]?.numero }}.</p>
       </div>
 
-      <form v-else id="form-delivrance" class="grid gap-4" novalidate @submit.prevent="delivrer">
+      <form v-else id="form-delivrance" class="grid gap-4" novalidate @submit.prevent="delivrer()">
         <ChampFormulaire libelle="Acte" pour="modele" :erreur="erreurs.modele_acte_id" requis>
           <Select v-model="modeleId">
             <SelectTrigger id="modele" class="w-full"><SelectValue placeholder="Choisir le type d'acte" /></SelectTrigger>
@@ -156,4 +171,24 @@ async function delivrer() {
       </DialogFooter>
     </DialogContent>
   </Dialog>
+
+  <AlertDialog v-model:open="confirmationDoublon">
+    <AlertDialogContent class="sm:max-w-lg">
+      <AlertDialogHeader>
+        <AlertDialogTitle class="flex items-center gap-2"><FileWarning class="size-5 text-sun-600" /> Acte déjà délivré</AlertDialogTitle>
+        <AlertDialogDescription>{{ doublons?.message }} Voulez-vous en délivrer un nouveau ?</AlertDialogDescription>
+      </AlertDialogHeader>
+      <ul v-if="doublons?.liste.length" class="max-h-52 divide-y overflow-y-auto rounded-md border text-sm">
+        <li v-for="d in doublons.liste" :key="d.numero" class="flex flex-wrap items-baseline justify-between gap-x-3 px-3 py-2">
+          <span class="font-medium text-slate-700">{{ d.doctorant }}</span>
+          <span class="text-xs text-slate-500">n° {{ d.numero }}, le {{ formaterDate(d.delivre_le) }}{{ d.annee ? `, ${d.annee}` : '' }}</span>
+        </li>
+      </ul>
+      <AlertDialogFooter class="gap-2 sm:gap-2">
+        <AlertDialogCancel :disabled="envoi">Non, annuler</AlertDialogCancel>
+        <Button v-if="lot" variant="outline" :disabled="envoi" @click="delivrer('ignorer')">Délivrer seulement aux autres</Button>
+        <Button :disabled="envoi" @click="delivrer('confirmer')"><Loader2 v-if="envoi" class="animate-spin" /> Oui, délivrer {{ lot ? 'à tous' : 'un nouvel acte' }}</Button>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
 </template>

@@ -10,13 +10,14 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Inscription annuelle d'un doctorant. D1 à D3 en durée normale ; au delà, c'est une dérogation.
  */
 #[Fillable([
     'doctorant_id', 'annee_universitaire_id', 'niveau', 'type', 'est_derogation', 'motif_derogation',
-    'decision_derogation', 'date_decision_derogation', 'statut', 'montant_du', 'date_inscription',
+    'decision_derogation', 'date_decision_derogation', 'statut', 'date_inscription',
 ])]
 class Inscription extends Model
 {
@@ -35,7 +36,6 @@ class Inscription extends Model
             'est_derogation' => 'boolean',
             'date_decision_derogation' => 'date',
             'date_inscription' => 'date',
-            'montant_du' => 'integer',
         ];
     }
 
@@ -45,6 +45,16 @@ class Inscription extends Model
     public function doctorant(): BelongsTo
     {
         return $this->belongsTo(Doctorant::class);
+    }
+
+    /**
+     * Frais créés pour cette inscription (droits d'inscription...).
+     *
+     * @return HasMany<FraisDoctorant, $this>
+     */
+    public function frais(): HasMany
+    {
+        return $this->hasMany(FraisDoctorant::class);
     }
 
     /**

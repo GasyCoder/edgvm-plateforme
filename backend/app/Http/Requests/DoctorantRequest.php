@@ -41,7 +41,7 @@ class DoctorantRequest extends FormRequest
         $regles = self::regles($doctorant instanceof Doctorant ? $doctorant : null);
         $etape = $this->input('etape');
 
-        if (! $doctorant instanceof Doctorant && is_string($etape) && isset(self::ETAPES[$etape])) {
+        if (is_string($etape) && isset(self::ETAPES[$etape])) {
             return collect($regles)
                 ->filter(fn (array $regle, string $champ) => in_array(strtok($champ, '.'), self::ETAPES[$etape], true))
                 ->all();
@@ -51,13 +51,13 @@ class DoctorantRequest extends FormRequest
     }
 
     /**
-     * Étapes de l'assistant de création : « etape » ne vérifie que les champs de l'étape, sans rien enregistrer.
+     * Étapes de l'assistant (création et modification) : « etape » ne vérifie que les champs de l'étape, sans rien enregistrer.
      */
     public const ETAPES = [
         'identite' => ['nom', 'prenoms', 'genre', 'date_naissance', 'lieu_naissance', 'nationalite', 'numero_piece', 'adresse'],
         'contact' => ['email', 'telephone', 'envoyer_invitation'],
         'these' => ['equipe_accueil_id', 'sujet_these', 'directeur_these', 'co_directeur', 'co_encadrant'],
-        'inscription' => ['inscription', 'matricule', 'visible_annuaire', 'observation'],
+        'inscription' => ['inscription', 'matricule', 'statut', 'est_boursier', 'visible_annuaire', 'observation'],
     ];
 
     public function estVerificationEtape(): bool
@@ -92,6 +92,7 @@ class DoctorantRequest extends FormRequest
             'co_directeur' => ['nullable', 'string', 'max:190'],
             'co_encadrant' => ['nullable', 'string', 'max:190'],
             'statut' => [$creation ? 'nullable' : 'required', Rule::enum(StatutDoctorant::class)],
+            'est_boursier' => ['boolean'],
             'visible_annuaire' => ['boolean'],
             'observation' => ['nullable', 'string', 'max:2000'],
             'envoyer_invitation' => ['boolean'],
@@ -99,7 +100,6 @@ class DoctorantRequest extends FormRequest
             'inscription' => [$creation ? 'nullable' : 'prohibited', 'array'],
             'inscription.annee_universitaire_id' => ['required_with:inscription', 'integer', Rule::exists('annees_universitaires', 'id')],
             'inscription.niveau' => ['required_with:inscription', Rule::enum(NiveauDoctorat::class)],
-            'inscription.montant_du' => ['required_with:inscription', 'integer', 'min:0', 'max:100000000'],
         ];
     }
 
@@ -122,6 +122,7 @@ class DoctorantRequest extends FormRequest
             'telephone.regex' => 'Numéro de téléphone non reconnu. Exemple : 034 12 345 67.',
             'date_naissance.before' => 'La date de naissance semble incorrecte.',
             'equipe_accueil_id.required' => "Choisissez l'équipe d'accueil.",
+            'est_boursier.boolean' => 'Boursier : indiquez « Oui » ou « Non ».',
         ];
     }
 
@@ -151,9 +152,9 @@ class DoctorantRequest extends FormRequest
             'directeur_these' => 'directeur de thèse',
             'co_directeur' => 'co-directeur',
             'co_encadrant' => 'co-encadrant',
+            'est_boursier' => 'boursier',
             'inscription.annee_universitaire_id' => 'année universitaire',
             'inscription.niveau' => 'niveau',
-            'inscription.montant_du' => 'montant des droits',
         ];
     }
 }

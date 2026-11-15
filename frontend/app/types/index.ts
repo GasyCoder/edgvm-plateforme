@@ -5,10 +5,40 @@ export interface Equipe {
   id: number
   sigle: string
   nom: string
+  domaine: string | null
   description: string | null
   fonction?: string
   doctorants_count?: number
-  membres?: Compte[]
+  programmes_count?: number
+  personnes_count?: number
+  responsable?: MembreEquipe | null
+  programmes?: ProgrammeDoctoral[]
+  personnes?: MembreEquipe[]
+  /** Comptes de la plateforme rattachés à l'équipe (accès à ses doctorants) */
+  comptes?: Compte[]
+  effectifs?: { D1: number, D2: number, D3: number, derogation: number }
+}
+
+export interface ProgrammeDoctoral {
+  id: number
+  nom: string
+  description: string | null
+  ordre: number
+}
+
+export type FonctionMembre = 'responsable' | 'encadrant' | 'membre'
+
+export interface MembreEquipe {
+  id: number
+  nom: string
+  titre: string | null
+  nom_avec_titre: string
+  fonction: FonctionMembre
+  fonction_libelle: string
+  specialite: string | null
+  etablissement: string | null
+  email: string | null
+  telephone: string | null
 }
 
 export interface Utilisateur {
@@ -59,7 +89,7 @@ export interface Inscription {
   date_decision_derogation: string | null
   statut: 'en_attente' | 'validee' | 'annulee'
   statut_libelle: string
-  montant_du?: number
+  frais?: number
   date_inscription: string | null
 }
 
@@ -85,11 +115,15 @@ export interface Doctorant {
   co_encadrant?: string | null
   statut: 'actif' | 'suspendu' | 'abandon' | 'diplome'
   statut_libelle: string
+  est_boursier: boolean
   visible_annuaire: boolean
-  compte?: { id: number, actif: boolean, derniere_connexion_le: string | null }
   inscription_courante?: Inscription | null
   inscriptions?: Inscription[]
   prochaine_inscription?: { niveau: Niveau, est_derogation: boolean, type: string }
+  paiement?: SituationPaiement
+  compte?: { id: number, actif: boolean, derniere_connexion_le: string | null }
+  photo_url: string | null
+  url_carte?: string
   peut: { modifier: boolean }
 }
 
@@ -168,4 +202,84 @@ export interface ReglagesActes {
   ville: string
   afficher_nom_signataire: boolean
   images: Record<'logo_gauche' | 'logo_droite' | 'signature', { personnalisee: boolean, existe: boolean }>
+}
+
+export type StatutPaiement = 'solde' | 'partiel' | 'a_venir' | 'en_retard' | 'rien_a_payer' | 'annule'
+
+export interface SituationPaiement {
+  du?: number
+  paye?: number
+  reste?: number
+  en_retard?: number
+  statut: StatutPaiement
+  statut_libelle: string
+}
+
+export interface TypeFrais {
+  id: number
+  code: string
+  libelle: string
+  description: string | null
+  par_niveau: boolean
+  montant: number
+  montants_niveaux: Record<'D1' | 'D2' | 'D3' | 'derogation', number> | null
+  obligatoire: boolean
+  echeance: 'fin_annee' | 'delai'
+  delai_jours: number
+  tranches: number
+  actif: boolean
+  frais_count?: number
+  frais_non_soldes_count?: number
+}
+
+export interface FraisDoctorant {
+  id: number
+  libelle: string
+  annee?: string | null
+  montant: number
+  paye: number
+  reste: number
+  echeance: string | null
+  situation: StatutPaiement
+  situation_libelle: string
+  motif_ajustement: string | null
+  annule_le: string | null
+  motif_annulation: string | null
+}
+
+export interface Paiement {
+  id: number
+  numero_recu: string
+  date_paiement: string
+  enregistre_le: string | null
+  montant: number
+  mode: 'especes' | 'virement' | 'mobile_money' | 'cheque'
+  mode_libelle: string
+  reference: string | null
+  observation: string | null
+  doctorant?: { id: string, nom_complet: string, matricule: string }
+  imputations?: Array<{ libelle: string | null, montant: number }>
+  saisi_par?: string | null
+  annule_le: string | null
+  motif_annulation: string | null
+  url_recu: string
+  reste_apres?: number | null
+  justificatif: { nom: string, type: string, taille: number, est_image: boolean, url: string } | null
+  peut_annuler: boolean
+}
+
+export interface Finances {
+  situation: Required<SituationPaiement>
+  frais: FraisDoctorant[]
+  paiements: Paiement[]
+}
+
+export interface NotificationPlateforme {
+  id: string
+  titre: string
+  message: string
+  lien: string | null
+  categorie: 'paiement' | 'frais' | 'rappel' | 'retards' | string
+  lue: boolean
+  cree_le: string
 }

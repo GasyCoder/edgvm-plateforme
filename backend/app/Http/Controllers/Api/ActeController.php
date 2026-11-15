@@ -49,9 +49,18 @@ class ActeController extends Controller
     public function store(DelivrerActeRequest $request, DelivrerActe $delivrer): JsonResponse
     {
         $doctorant = Doctorant::query()->where('uuid', $request->input('doctorant'))->firstOrFail();
+        $annee = $this->annee($request);
+
+        if (! $request->filled('doublons') && ($deja = Acte::dejaDelivres($request->modele(), [$doctorant->id], $annee)->first())) {
+            return response()->json([
+                'message' => "{$doctorant->nomComplet()} a déjà reçu cet acte".($deja->anneeUniversitaire && $request->modele()->exige_inscription ? " pour {$deja->anneeUniversitaire->libelle}" : '')." (n° {$deja->numero} du {$deja->delivre_le->format('d/m/Y')}).",
+                'code' => 'deja_delivre',
+                'deja' => [$deja->resumeDoublon()],
+            ], 409);
+        }
 
         try {
-            $acte = $delivrer($request->modele(), $doctorant, $this->annee($request), $request->validated('champs') ?? [], $request->user());
+            $acte = $delivrer($request->modele(), $doctorant, $annee, $request->validated('champs') ?? [], $request->user());
         } catch (ActeImpossible $exception) {
             return response()->json(['message' => $exception->getMessage(), 'errors' => ['doctorant' => [$exception->getMessage()]]], 422);
         }
@@ -72,8 +81,25 @@ class ActeController extends Controller
         $erreurs = [];
 
         $doctorants = Doctorant::query()->whereIn('uuid', $request->validated('doctorants'))->orderBy('nom')->orderBy('prenoms')->get();
+        $deja = Acte::dejaDelivres($modele, $doctorants->modelKeys(), $annee)->keyBy('doctorant_id');
+
+        if ($deja->isNotEmpty() && ! $request->filled('doublons')) {
+            return response()->json([
+                'message' => $deja->count() === 1
+                    ? '1 doctorant de la sélection a déjà reçu cet acte.'
+                    : "{$deja->count()} doctorants de la sélection ont déjà reçu cet acte.",
+                'code' => 'deja_delivre',
+                'deja' => $deja->values()->map->resumeDoublon()->all(),
+            ], 409);
+        }
 
         foreach ($doctorants as $doctorant) {
+            if ($request->validated('doublons') === 'ignorer' && ($acte = $deja->get($doctorant->id))) {
+                $erreurs[] = ['doctorant' => $doctorant->nomComplet(), 'matricule' => $doctorant->matricule, 'message' => "Déjà délivré (n° {$acte->numero}), ignoré."];
+
+                continue;
+            }
+
             try {
                 $delivres->push($delivrer($modele, $doctorant, $annee, $champs, $request->user()));
             } catch (ActeImpossible $exception) {

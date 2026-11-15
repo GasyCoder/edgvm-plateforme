@@ -203,3 +203,51 @@ it('leaves the signatory name to the stamp unless asked to print it', function (
 
     expect(GenerateurPdfActes::html(Acte::query()->get()))->toContain('ASSOUMACOU Elia Béatrice')->toContain('Professeure Titulaire');
 });
+
+it('warns before delivering the same act twice for the same year, and delivers it once confirmed', function (): void {
+    $doctorant = doctorantInscrit($this->annee);
+    $admin = superAdmin();
+    $corps = ['modele_acte_id' => $this->attestation->id, 'doctorant' => $doctorant->uuid, 'annee_universitaire_id' => $this->annee->id];
+
+    $this->actingAs($admin)->postJson(route('actes.store'), $corps)->assertCreated();
+    $this->actingAs($admin)->postJson(route('actes.store'), $corps)
+        ->assertStatus(409)
+        ->assertJsonPath('code', 'deja_delivre')
+        ->assertJsonPath('deja.0.numero', 'EDGVM/'.now()->year.'/000001')
+        ->assertJsonPath('deja.0.annee', $this->annee->libelle)
+        ->assertJsonPath('message', fn (string $message) => str_contains($message, 'RABE Fanja a déjà reçu cet acte pour '.$this->annee->libelle));
+    expect(Acte::query()->count())->toBe(1);
+
+    $this->actingAs($admin)->postJson(route('actes.store'), [...$corps, 'doublons' => 'confirmer'])->assertCreated()->assertJsonPath('data.numero', 'EDGVM/'.now()->year.'/000002');
+    $this->actingAs($admin)->postJson(route('actes.store'), [...$corps, 'doublons' => 'ignorer'])->assertJsonValidationErrors('doublons');
+});
+
+it('does not count a cancelled act, nor one of another year, as already delivered', function (): void {
+    $doctorant = doctorantInscrit($this->annee);
+    $ancienne = AnneeUniversitaire::factory()->rentree(2025)->create();
+    Inscription::factory()->for($doctorant)->for($ancienne, 'anneeUniversitaire')->niveau(NiveauDoctorat::D1)->create();
+    $admin = superAdmin();
+
+    $id = $this->actingAs($admin)->postJson(route('actes.store'), ['modele_acte_id' => $this->attestation->id, 'doctorant' => $doctorant->uuid, 'annee_universitaire_id' => $ancienne->id])->assertCreated()->json('data.id');
+    $this->actingAs($admin)->postJson(route('actes.store'), ['modele_acte_id' => $this->attestation->id, 'doctorant' => $doctorant->uuid, 'annee_universitaire_id' => $this->annee->id])->assertCreated();
+
+    $this->actingAs($admin)->postJson(route('actes.annuler', $id), ['motif' => 'Erreur de saisie'])->assertOk();
+    $this->actingAs($admin)->postJson(route('actes.store'), ['modele_acte_id' => $this->attestation->id, 'doctorant' => $doctorant->uuid, 'annee_universitaire_id' => $ancienne->id])->assertCreated();
+});
+
+it('lists the students who already have the act before a bulk delivery, then delivers or skips them', function (): void {
+    $deja = doctorantInscrit($this->annee, ['nom' => 'Deja']);
+    $nouveau = doctorantInscrit($this->annee, ['nom' => 'Nouveau']);
+    $admin = superAdmin();
+    $this->actingAs($admin)->postJson(route('actes.store'), ['modele_acte_id' => $this->attestation->id, 'doctorant' => $deja->uuid, 'annee_universitaire_id' => $this->annee->id])->assertCreated();
+    $corps = ['modele_acte_id' => $this->attestation->id, 'doctorants' => [$deja->uuid, $nouveau->uuid], 'annee_universitaire_id' => $this->annee->id];
+
+    $this->actingAs($admin)->postJson(route('actes.lot'), $corps)
+        ->assertStatus(409)->assertJsonCount(1, 'deja')->assertJsonPath('deja.0.doctorant', 'DEJA Fanja');
+    expect(Acte::query()->count())->toBe(1);
+
+    $this->actingAs($admin)->postJson(route('actes.lot'), [...$corps, 'doublons' => 'ignorer'])
+        ->assertOk()->assertJsonCount(1, 'data.delivres')->assertJsonPath('data.erreurs.0.doctorant', 'DEJA Fanja')
+        ->assertJsonPath('data.erreurs.0.message', fn (string $m) => str_contains($m, 'Déjà délivré'));
+    $this->actingAs($admin)->postJson(route('actes.lot'), [...$corps, 'doublons' => 'confirmer'])->assertOk()->assertJsonCount(2, 'data.delivres');
+});

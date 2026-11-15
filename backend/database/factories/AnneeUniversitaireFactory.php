@@ -15,7 +15,8 @@ class AnneeUniversitaireFactory extends Factory
      */
     public function definition(): array
     {
-        $debut = fake()->unique()->numberBetween(2000, 2090);
+        /* Années lointaines : jamais celles que les tests créent par rentree() ou anneeCourante() (2020 à 2030). */
+        $debut = fake()->unique()->numberBetween(2040, 2099);
 
         return [
             'libelle' => $debut.'-'.($debut + 1),

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CalendarPlus, Mail, Pencil, Phone, Send, Stamp, TriangleAlert } from '@lucide/vue'
+import { CalendarPlus, GraduationCap, IdCard, Mail, Pencil, Phone, Send, Stamp, TriangleAlert } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -35,6 +35,10 @@ watch(doctorant, async (fiche) => {
   if (fiche.peut.modifier && route.query.inscrire === '1') {
     ouvrirInscription()
     navigateTo({ query: { ...route.query, inscrire: undefined } }, { replace: true })
+  }
+  if (route.query.section === 'paiements') {
+    await nextTick()
+    document.getElementById('paiements')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
   if (route.query.pieces === '1') {
     await nextTick()
@@ -82,13 +86,16 @@ useHead(() => ({ title: doctorant.value ? doctorant.value.nom_complet : 'Dossier
   <div v-else-if="doctorant" class="grid gap-6">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div class="flex min-w-0 items-center gap-4">
-        <span class="flex size-14 flex-none items-center justify-center rounded-full bg-brand-800 text-lg font-semibold text-white">{{ initiales(doctorant.nom_complet) }}</span>
+        <img v-if="doctorant.photo_url" :src="doctorant.photo_url" :alt="`Photo de ${doctorant.nom_complet}`" class="size-16 flex-none rounded-full border border-gray-200 object-cover object-top">
+        <span v-else class="flex size-14 flex-none items-center justify-center rounded-full bg-brand-800 text-lg font-semibold text-white">{{ initiales(doctorant.nom_complet) }}</span>
         <div class="min-w-0">
           <h1 class="truncate text-2xl font-bold tracking-tight text-brand-900">{{ doctorant.nom_complet }}</h1>
           <div class="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <span>{{ doctorant.matricule }}</span>
             <BadgeStatut :statut="doctorant.statut" :libelle="doctorant.statut_libelle" />
             <BadgeNiveau :inscription="doctorant.inscription_courante" />
+            <span v-if="doctorant.est_boursier" class="inline-flex items-center gap-1 rounded bg-brand-50 px-1.5 py-0.5 text-xs font-semibold text-brand-700"><GraduationCap class="size-3.5" aria-hidden="true" />Boursier</span>
+            <BadgePaiement v-if="doctorant.paiement && doctorant.paiement.statut !== 'rien_a_payer'" :statut="doctorant.paiement.statut" :libelle="doctorant.paiement.statut_libelle" />
           </div>
         </div>
       </div>
@@ -97,6 +104,9 @@ useHead(() => ({ title: doctorant.value ? doctorant.value.nom_complet : 'Dossier
           <NuxtLink :to="`/doctorants/${doctorant.id}/modifier`"><Pencil /> Modifier</NuxtLink>
         </Button>
         <Button variant="outline" @click="actes?.ouvrir()"><Stamp /> Délivrer un acte</Button>
+        <Button v-if="doctorant.url_carte" variant="outline" as-child :title="doctorant.photo_url ? undefined : 'Sans photo : ajoutez-la depuis « Modifier »'">
+          <a :href="doctorant.url_carte" target="_blank" rel="noopener"><IdCard /> Carte de doctorat</a>
+        </Button>
         <Button @click="ouvrirInscription()"><CalendarPlus /> Inscrire</Button>
       </div>
     </div>
@@ -154,7 +164,7 @@ useHead(() => ({ title: doctorant.value ? doctorant.value.nom_complet : 'Dossier
                 </div>
                 <BadgeNiveau :inscription="inscription" />
                 <BadgeStatut :statut="inscription.statut" :libelle="inscription.statut_libelle" />
-                <span v-if="inscription.montant_du !== undefined" class="text-sm tabular-nums">{{ formaterMontant(inscription.montant_du) }}</span>
+                <span v-if="inscription.frais" class="text-sm tabular-nums text-slate-500">{{ formaterMontant(inscription.frais) }}</span>
                 <span v-if="inscription.decision_derogation" class="w-full text-xs text-muted-foreground sm:w-auto">{{ inscription.decision_derogation }}</span>
                 <Button v-if="doctorant.peut.modifier" variant="ghost" size="icon-sm" class="ml-auto" aria-label="Modifier l'inscription" @click="ouvrirInscription(inscription)">
                   <Pencil />
@@ -163,6 +173,8 @@ useHead(() => ({ title: doctorant.value ? doctorant.value.nom_complet : 'Dossier
             </ul>
           </CardContent>
         </Card>
+
+        <CartePaiements v-if="estSuperAdmin || utilisateur?.doctorant_id === doctorant.id" :doctorant-id="doctorant.id" :nom-complet="doctorant.nom_complet" @change="refresh()" />
 
         <PiecesJointes :doctorant-id="doctorant.id" :peut-ajouter="estSuperAdmin || utilisateur?.doctorant_id === doctorant.id" />
       </div>

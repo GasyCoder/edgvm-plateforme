@@ -3,7 +3,14 @@
 use App\Http\Controllers\InterfaceController;
 use Illuminate\Support\Facades\File;
 
-afterEach(fn () => File::delete(public_path(InterfaceController::FICHIER)));
+// Dossier public temporaire : les tests ne touchent jamais à l'interface réellement construite dans public/.
+beforeEach(function (): void {
+    $this->dossierPublic = sys_get_temp_dir().'/edgvm-public-'.uniqid();
+    File::ensureDirectoryExists($this->dossierPublic);
+    $this->app->usePublicPath($this->dossierPublic);
+});
+
+afterEach(fn () => File::deleteDirectory($this->dossierPublic));
 
 it('serves the interface for every page address', function (string $adresse): void {
     File::put(public_path(InterfaceController::FICHIER), '<div id="__nuxt"></div>');
