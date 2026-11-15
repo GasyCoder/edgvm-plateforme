@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\User;
+use App\Support\ReglagesApplication;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -53,12 +54,14 @@ abstract class NotificationPlateforme extends Notification implements ShouldQueu
 
     public function toMail(User $notifiable): MailMessage
     {
+        $nom = ReglagesApplication::nomPourCourriels();
+
         return (new MailMessage)
-            ->subject($this->titre().', EDGVM')
+            ->subject($this->titre().', '.$nom)
             ->greeting('Bonjour '.$notifiable->name.',')
             ->line($this->message())
             ->action('Voir sur la plateforme', rtrim((string) config('app.frontend_url'), '/').$this->lien())
-            ->salutation("L'équipe de l'EDGVM");
+            ->salutation("L'équipe de l'{$nom}");
     }
 
     protected static function ar(int $montant): string

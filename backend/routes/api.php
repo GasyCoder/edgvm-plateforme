@@ -18,10 +18,14 @@ use App\Http\Controllers\Api\PhotoDoctorantController;
 use App\Http\Controllers\Api\PieceJointeController;
 use App\Http\Controllers\Api\ProgrammeDoctoralController;
 use App\Http\Controllers\Api\ReglagesActesController;
+use App\Http\Controllers\Api\ReglagesApplicationController;
+use App\Http\Controllers\Api\ReglagesMatriculeController;
+use App\Http\Controllers\Api\SeanceController;
 use App\Http\Controllers\Api\TableauDeBordController;
 use App\Http\Controllers\Api\TypeFraisController;
 use App\Http\Controllers\ApiPublique\DoctorantController as DoctorantPublicController;
 use App\Http\Controllers\ApiPublique\EquipeController as EquipePublicController;
+use App\Http\Middleware\ModeMaintenance;
 use App\Http\Middleware\VerifierJetonApiPublique;
 use Illuminate\Support\Facades\Route;
 
@@ -34,7 +38,10 @@ Route::middleware('throttle:6,1')->group(function (): void {
     Route::post('/mot-de-passe/reinitialiser', [AuthentificationController::class, 'reinitialiserMotDePasse'])->name('mot-de-passe.reinitialiser');
 });
 
-Route::middleware('auth:sanctum')->group(function (): void {
+/* Nom, logos, maintenance et apparence : lus par l'interface avant la connexion */
+Route::get('/application', [ReglagesApplicationController::class, 'public'])->name('application');
+
+Route::middleware(['auth:sanctum', ModeMaintenance::class])->group(function (): void {
     Route::post('/deconnexion', [AuthentificationController::class, 'deconnexion'])->name('deconnexion');
     Route::get('/moi', [AuthentificationController::class, 'moi'])->name('moi');
     Route::put('/moi/mot-de-passe', [AuthentificationController::class, 'modifierMotDePasse'])->name('moi.mot-de-passe');
@@ -67,6 +74,22 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/modeles-actes/disponibles', [ModeleActeController::class, 'disponibles'])->name('modeles-actes.disponibles');
     Route::post('/modeles-actes/apercu', [ModeleActeController::class, 'apercu'])->name('modeles-actes.apercu');
     Route::apiResource('modeles-actes', ModeleActeController::class)->parameters(['modeles-actes' => 'modele']);
+    Route::apiResource('seances', SeanceController::class);
+    Route::post('/seances/{seance}/annuler', [SeanceController::class, 'annuler'])->name('seances.annuler');
+    Route::get('/seances/{seance}/candidats', [SeanceController::class, 'candidats'])->name('seances.candidats');
+    Route::post('/seances/{seance}/passages', [SeanceController::class, 'ajouterPassages'])->name('seances.passages');
+    Route::post('/seances/{seance}/replanifier', [SeanceController::class, 'replanifierPassages'])->name('seances.replanifier');
+    Route::get('/seances/{seance}/disponibilites', [SeanceController::class, 'disponibilites'])->name('seances.disponibilites');
+    Route::post('/seances/{seance}/intervenants', [SeanceController::class, 'affecter'])->name('seances.affecter');
+    Route::post('/seances/{seance}/convoquer', [SeanceController::class, 'convoquer'])->name('seances.convoquer');
+    Route::put('/passages/{passage}', [SeanceController::class, 'modifierPassage'])->name('passages.update');
+    Route::delete('/passages/{passage}', [SeanceController::class, 'supprimerPassage'])->name('passages.destroy');
+    Route::delete('/passages/{passage}/intervenants/{membre}', [SeanceController::class, 'retirerIntervenant'])->name('passages.retirer-intervenant');
+    Route::get('/reglages-matricule', [ReglagesMatriculeController::class, 'show'])->name('reglages-matricule.show');
+    Route::post('/reglages-matricule', [ReglagesMatriculeController::class, 'update'])->name('reglages-matricule.update');
+    Route::post('/reglages-matricule/apercu', [ReglagesMatriculeController::class, 'apercu'])->name('reglages-matricule.apercu');
+    Route::get('/reglages-application', [ReglagesApplicationController::class, 'show'])->name('reglages-application.show');
+    Route::post('/reglages-application', [ReglagesApplicationController::class, 'update'])->name('reglages-application.update');
     Route::get('/api-publique', [ApiPubliqueController::class, 'show'])->name('api-publique.show');
     Route::post('/api-publique/jeton', [ApiPubliqueController::class, 'generer'])->name('api-publique.generer');
     Route::delete('/api-publique/jeton', [ApiPubliqueController::class, 'revoquer'])->name('api-publique.revoquer');

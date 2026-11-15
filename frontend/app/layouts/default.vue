@@ -8,6 +8,10 @@ import { useLocalStorage } from '@vueuse/core'
  */
 const { liensDuBas, estActif } = useNavigation()
 const { anneeCourante } = useReferentiels()
+const { application } = useApplication()
+const { estSuperAdmin } = useAuth()
+/* Maintenance : l'administration continue à travailler (avec un bandeau), les autres voient le message. */
+const enMaintenance = computed(() => application.value.maintenance.active)
 const route = useRoute()
 
 const compact = useLocalStorage('edgvm-menu-compact', false)
@@ -36,7 +40,7 @@ watch(() => route.fullPath, () => { menuMobile.value = false })
 </script>
 
 <template>
-  <div class="min-h-dvh bg-[#f5f6fa]">
+  <div class="min-h-dvh bg-page">
     <!-- Fond assombri derrière le menu mobile -->
     <div v-if="menuMobile" class="fixed inset-0 z-40 bg-slate-900/40 xl:hidden" aria-hidden="true" @click="menuMobile = false" />
 
@@ -48,17 +52,17 @@ watch(() => route.fullPath, () => { menuMobile.value = false })
     >
       <div class="flex h-16 flex-none items-center gap-3 border-b border-gray-200 px-5">
         <NuxtLink to="/" class="flex min-w-0 items-center gap-3">
-          <img src="/images/logo-edgvm-112.webp" alt="" class="size-9 flex-none object-contain">
+          <img :src="application.logos.edgvm" alt="" class="size-9 flex-none object-contain">
           <span class="whitespace-nowrap leading-tight transition-opacity" :class="replie ? 'opacity-0' : ''">
-            <span class="block text-lg font-extrabold tracking-tight text-brand-800">EDGVM</span>
-            <span class="block text-[11px] text-slate-400">Plateforme de l'École doctorale</span>
+            <span class="block text-lg font-extrabold tracking-tight text-brand-800">{{ application.nom }}</span>
+            <span class="block text-[11px] text-slate-400">{{ application.sous_titre }}</span>
           </span>
         </NuxtLink>
         <button type="button" class="ms-auto rounded-full p-1.5 text-slate-500 hover:bg-gray-100 xl:hidden" aria-label="Fermer le menu" @click="menuMobile = false">
           <X class="size-5" />
         </button>
       </div>
-      <div class="flex-1 overflow-y-auto overflow-x-hidden">
+      <div class="sans-barre flex-1 overflow-y-auto overflow-x-hidden">
         <NavigationLiens :compact="replie" @choisi="menuMobile = false" />
       </div>
       <button
@@ -84,8 +88,8 @@ watch(() => route.fullPath, () => { menuMobile.value = false })
             <Menu class="size-6" />
           </button>
           <NuxtLink to="/" class="flex items-center gap-2 xl:hidden">
-            <img src="/images/logo-edgvm-112.webp" alt="" class="size-8 object-contain">
-            <span class="font-extrabold text-brand-800">EDGVM</span>
+            <img :src="application.logos.edgvm" alt="" class="size-8 object-contain">
+            <span class="font-extrabold text-brand-800">{{ application.nom }}</span>
           </NuxtLink>
           <p v-if="anneeCourante" class="hidden items-center gap-2 text-sm text-slate-500 xl:flex">
             <span class="size-2 rounded-full bg-leaf-400" />
@@ -99,12 +103,19 @@ watch(() => route.fullPath, () => { menuMobile.value = false })
       </header>
 
       <main class="flex-1 px-3 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-[calc(4rem+1.5rem)] sm:px-6 sm:pt-[calc(4rem+2rem)] xl:pb-8">
-        <slot />
+        <EcranMaintenance v-if="enMaintenance && !estSuperAdmin" />
+        <template v-else>
+          <div v-if="enMaintenance" class="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-sun-300 bg-sun-50 px-4 py-3 text-sm text-sun-700" role="status">
+            <span class="font-semibold">Maintenance en cours :</span> seule l'administration a accès à la plateforme.
+            <NuxtLink to="/parametres?onglet=application" class="font-semibold underline underline-offset-2">Désactiver</NuxtLink>
+          </div>
+          <slot />
+        </template>
       </main>
 
       <footer class="hidden border-t border-gray-200 bg-white px-6 py-4 text-sm text-slate-400 xl:flex xl:justify-between">
-        <p>© {{ new Date().getFullYear() }} EDGVM, Université de Mahajanga</p>
-        <p>École Doctorale Génie du Vivant et Modélisation</p>
+        <p>© {{ new Date().getFullYear() }} {{ application.nom }}, {{ application.universite }}</p>
+        <p>{{ application.ecole }}</p>
       </footer>
     </div>
 

@@ -1,4 +1,4 @@
-import { CalendarRange, CircleUserRound, FilePen, FileStack, FolderOpen, LayoutDashboard, Network, Settings2, UserCog, Users, Wallet } from '@lucide/vue'
+import { CalendarRange, CircleUserRound, Presentation, FilePen, FileStack, FolderOpen, LayoutDashboard, Network, Settings2, UserCog, Users, Wallet } from '@lucide/vue'
 import type { Component } from 'vue'
 import type { Role } from '~/types'
 
@@ -18,6 +18,8 @@ const LIENS: LienNavigation[] = [
   { libelle: 'Mon dossier', court: 'Dossier', vers: '/', icone: FolderOpen, roles: ['doctorant'], section: 'Mon espace', enBas: true },
   { libelle: 'Doctorants', vers: '/doctorants', icone: Users, roles: ['super_admin', 'membre_ead'], section: 'Gestion', enBas: true },
   { libelle: "Équipes d'accueil", court: 'Équipes', vers: '/equipes', icone: Network, roles: ['super_admin', 'membre_ead'], section: 'Gestion' },
+  { libelle: 'Séminaires et avancements', court: 'Séances', vers: '/seances', icone: Presentation, roles: ['super_admin', 'membre_ead'], section: 'Communication' },
+  { libelle: 'Mes séances', court: 'Séances', vers: '/seances', icone: Presentation, roles: ['doctorant'], section: 'Mon espace' },
   { libelle: 'Paiements', vers: '/paiements', icone: Wallet, roles: ['super_admin'], section: 'Finances', enBas: true },
   { libelle: 'Mes paiements', court: 'Paiements', vers: '/paiements', icone: Wallet, roles: ['doctorant'], section: 'Mon espace', enBas: true },
   { libelle: 'Actes délivrés', court: 'Actes', vers: '/actes', icone: FileStack, roles: ['super_admin', 'membre_ead'], section: 'Actes administratifs', enBas: true },

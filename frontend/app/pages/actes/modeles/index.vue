@@ -34,9 +34,8 @@ async function chargerReglages() {
 }
 onMounted(chargerReglages)
 
+/* Les logos et le nom du directeur se règlent dans Paramètres > Application (communs à tous les documents). */
 const IMAGES = [
-  { cle: 'logo_gauche', libelle: 'Logo de gauche', aide: "Université de Mahajanga (PNG ou JPG)" },
-  { cle: 'logo_droite', libelle: 'Logo de droite', aide: 'École doctorale (PNG ou JPG)' },
   { cle: 'signature', libelle: 'Signature et cachet', aide: 'PNG à fond transparent conseillé, environ 600 × 300 px' },
 ] as const
 
@@ -126,16 +125,16 @@ async function enregistrerReglages() {
                 </div>
                 <Switch id="afficher-nom" v-model="reglages.afficher_nom_signataire" />
               </div>
-              <template v-if="reglages.afficher_nom_signataire">
-                <ChampFormulaire libelle="Nom" pour="sig-nom" :erreur="erreurs.signataire_nom" requis><Input id="sig-nom" v-model="reglages.signataire_nom" /></ChampFormulaire>
-                <ChampFormulaire libelle="Titre" pour="sig-titre" :erreur="erreurs.signataire_titre" aide="Sous le nom, en italique."><Input id="sig-titre" v-model="reglages.signataire_titre" /></ChampFormulaire>
-              </template>
+              <p v-if="reglages.afficher_nom_signataire" class="text-sm text-slate-500 sm:col-span-2">
+                Imprimés : <span class="font-semibold text-slate-700">{{ reglages.signataire_nom }}</span>, <span class="italic">{{ reglages.signataire_titre }}</span>.
+                <NuxtLink to="/parametres?onglet=application" class="font-medium text-brand-700 hover:underline">Modifier dans Paramètres</NuxtLink>
+              </p>
             </div>
           </div>
 
           <div class="rounded-md border border-gray-300 bg-white p-5">
-            <h2 class="mb-1 font-bold text-slate-700">Images</h2>
-            <p class="mb-4 text-sm text-slate-400">Les actes déjà délivrés gardent les images de leur date.</p>
+            <h2 class="mb-1 font-bold text-slate-700">Signature</h2>
+            <p class="mb-4 text-sm text-slate-400">Les actes déjà délivrés gardent les images de leur date. Les logos de l'École et de l'Université se changent dans <NuxtLink to="/parametres?onglet=application" class="font-medium text-brand-700 hover:underline">Paramètres, Application</NuxtLink>.</p>
             <ul class="grid gap-4">
               <li v-for="image in IMAGES" :key="image.cle" class="flex items-center gap-4">
                 <div class="flex h-16 w-28 flex-none items-center justify-center overflow-hidden rounded border border-dashed border-gray-300 bg-gray-50">

@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\PaiementController;
 use App\Http\Controllers\Api\PhotoDoctorantController;
 use App\Http\Controllers\Api\PieceJointeController;
 use App\Http\Controllers\Api\ReglagesActesController;
+use App\Http\Controllers\Api\ReglagesApplicationController;
 use App\Http\Controllers\InterfaceController;
 use App\Http\Controllers\VerificationActeController;
 use Illuminate\Support\Facades\Route;
@@ -34,6 +35,8 @@ Route::middleware('auth')->prefix('telechargements')->group(function (): void {
 });
 
 // Vérification publique d'un acte (QR code imprimé)
+Route::get('/marque/{cle}', [ReglagesApplicationController::class, 'logo'])->name('marque.logo');
+Route::get('/robots.txt', [ReglagesApplicationController::class, 'robots'])->name('robots');
 Route::get('/verifier/{code}', VerificationActeController::class)->middleware('throttle:30,1')->name('actes.verifier');
 
 // L'interface Nuxt gère toutes les pages ; l'API est dans routes/api.php.

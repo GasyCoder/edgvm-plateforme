@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { CalendarRange, FilePen, Loader2, Pencil, Plus, ReceiptText, Trash2 } from '@lucide/vue'
+import { CalendarRange, FilePen, Globe, Hash, Loader2, Pencil, Plus, ReceiptText, Settings2, Trash2 } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,6 +15,11 @@ definePageMeta({ roles: ['super_admin'] })
 useHead({ title: 'Paramètres' })
 
 const api = useApi()
+const route = useRoute()
+const router = useRouter()
+/* Onglet dans l'adresse : un lien peut ouvrir directement « Application » ou « Frais et tarifs ». */
+const onglet = computed(() => ['application', 'matricule', 'frais', 'site'].includes(route.query.onglet as string) ? route.query.onglet as string : 'application')
+const changerOnglet = (valeur: string | number) => router.replace({ query: { ...route.query, onglet: String(valeur) } })
 const { data: types, status, refresh } = useAsyncData('types-frais', () => api<Ressource<TypeFrais[]>>('/api/types-frais').then(r => r.data), { lazy: true })
 
 const NIVEAUX = [['D1', 'D1'], ['D2', 'D2'], ['D3', 'D3'], ['derogation', 'Dérogation']] as const
@@ -100,7 +106,19 @@ const tarif = (type: TypeFrais) => type.par_niveau && type.montants_niveaux
 
 <template>
   <div>
-    <EnTetePage titre="Paramètres" description="Les valeurs utilisées par la plateforme : frais et tarifs, années, modèles d'actes, connexion du site vitrine." />
+    <EnTetePage titre="Paramètres" description="Réglages de l'application, matricule des doctorants, frais et tarifs, connexion du site vitrine." />
+
+    <Tabs :model-value="onglet" class="mb-6" @update:model-value="changerOnglet">
+      <TabsList>
+        <TabsTrigger value="application" class="gap-1.5"><Settings2 class="size-4" aria-hidden="true" />Application</TabsTrigger>
+        <TabsTrigger value="matricule" class="gap-1.5"><Hash class="size-4" aria-hidden="true" />Matricule</TabsTrigger>
+        <TabsTrigger value="frais" class="gap-1.5"><ReceiptText class="size-4" aria-hidden="true" />Frais et tarifs</TabsTrigger>
+        <TabsTrigger value="site" class="gap-1.5"><Globe class="size-4" aria-hidden="true" />Site vitrine</TabsTrigger>
+      </TabsList>
+      <TabsContent value="application" class="mt-4"><ReglagesApplication /></TabsContent>
+      <TabsContent value="matricule" class="mt-4"><ReglagesMatricule /></TabsContent>
+      <TabsContent value="site" class="mt-4"><AccesSiteVitrine /></TabsContent>
+      <TabsContent value="frais" class="mt-4">
 
     <div class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <NuxtLink to="/annees" class="flex items-center gap-3 rounded-md border border-gray-300 bg-white p-4 hover:border-brand-400"><CalendarRange class="size-5 text-brand-600" /><span><span class="block font-semibold text-slate-700">Années universitaires</span><span class="text-xs text-slate-400">Année en cours, dates</span></span></NuxtLink>
@@ -136,7 +154,8 @@ const tarif = (type: TypeFrais) => type.par_niveau && type.montants_niveaux
       </ul>
     </div>
 
-    <AccesSiteVitrine class="mt-6" />
+      </TabsContent>
+    </Tabs>
 
     <Dialog v-model:open="ouvert">
       <DialogContent class="max-h-[90dvh] overflow-y-auto sm:max-w-lg">

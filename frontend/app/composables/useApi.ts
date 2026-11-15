@@ -23,6 +23,11 @@ export function useApi() {
         useState('utilisateur').value = null
         await navigateTo({ path: '/connexion', query: { session: 'expiree' } })
       }
+      /* Maintenance activée pendant la session : l'écran de maintenance remplace la page. */
+      if (response.status === 503 && (response._data as { maintenance?: boolean } | undefined)?.maintenance) {
+        const { application } = useApplication()
+        application.value = { ...application.value, maintenance: { active: true, message: (response._data as { message?: string }).message ?? '' } }
+      }
     },
   })
 }

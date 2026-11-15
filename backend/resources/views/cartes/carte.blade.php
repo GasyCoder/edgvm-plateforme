@@ -12,7 +12,7 @@
     .cadre > tr > td, .cadre > tbody > tr > td { border: 0.6pt solid #444; vertical-align: top; }
     .entete { height: 2.05cm; padding: 0.1cm 0.2cm; }
     .ministere { font-weight: bold; font-size: 6.8pt; text-align: center; line-height: 1.35; vertical-align: top; padding: 0.15cm 0 0 0.1cm; }
-    .universite { color: #1d5fa8; font-size: 8pt; margin-top: 0.05cm; }
+    .universite { color: #1d5fa8; font-size: 8pt; padding: 0.06cm 0 0 0; white-space: nowrap; }
     .arrete { font-weight: bold; font-size: 7pt; line-height: 1.45; vertical-align: top; padding-top: 0.1cm; }
     .titre { text-align: center; font-size: 11pt; font-weight: bold; letter-spacing: 0.04cm; height: 0.7cm; vertical-align: middle !important; }
     .corps { height: 5.5cm; padding: 0.15cm 0.15cm 0 0.15cm; }
@@ -42,9 +42,11 @@
                         <tr>
                             <td style="width: 2.3cm; vertical-align: top; padding: 0">
                                 @if ($logo_gauche)<img src="{{ $logo_gauche }}" style="height: 1.35cm" alt="">@endif
-                                <div class="universite">Université de Mahajanga</div>
                             </td>
                             <td class="ministere" style="padding: 0.1cm 0 0 0.1cm">{{ $ministere }}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="universite">{{ $universite }}</td>
                         </tr>
                     </table>
                 </td>

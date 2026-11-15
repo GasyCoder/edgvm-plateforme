@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Bell, CheckCheck, CircleDollarSign, Clock4, ReceiptText, TriangleAlert } from '@lucide/vue'
+import { Bell, CheckCheck, CircleDollarSign, Clock4, ReceiptText, TriangleAlert, Presentation } from '@lucide/vue'
 import { useIntervalFn } from '@vueuse/core'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import type { NotificationPlateforme } from '~/types'
@@ -47,8 +47,8 @@ async function toutMarquerLu() {
   await api('/api/notifications/tout-lu', { method: 'POST' }).catch(() => {})
 }
 
-const icone = (categorie: string) => ({ paiement: CircleDollarSign, frais: ReceiptText, rappel: Clock4, retards: TriangleAlert } as Record<string, typeof Bell>)[categorie] ?? Bell
-const couleur = (categorie: string) => ({ paiement: 'bg-leaf-50 text-leaf-600', frais: 'bg-brand-50 text-brand-700', rappel: 'bg-sun-50 text-sun-700', retards: 'bg-red-50 text-destructive' } as Record<string, string>)[categorie] ?? 'bg-gray-100 text-slate-500'
+const icone = (categorie: string) => ({ paiement: CircleDollarSign, frais: ReceiptText, rappel: Clock4, retards: TriangleAlert, seance: Presentation } as Record<string, typeof Bell>)[categorie] ?? Bell
+const couleur = (categorie: string) => ({ paiement: 'bg-leaf-50 text-leaf-600', frais: 'bg-brand-50 text-brand-700', rappel: 'bg-sun-50 text-sun-700', retards: 'bg-red-50 text-destructive', seance: 'bg-brand-50 text-brand-700' } as Record<string, string>)[categorie] ?? 'bg-gray-100 text-slate-500'
 const pastille = computed(() => nonLues.value > 99 ? '99+' : String(nonLues.value))
 </script>
 

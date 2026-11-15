@@ -55,6 +55,9 @@
     --color-sun-600: #b28f12;
     --color-sun-700: #8a6d12;
     --color-gold: #c2b24a;
+
+    /* Fond des pages, derrière les cartes blanches */
+    --color-page: #f5f6fa;
 }
 
 /* Jetons shadcn-vue */
@@ -88,6 +91,76 @@
     --sidebar-accent-foreground: #ffffff;
     --sidebar-border: #1d5a45;
     --sidebar-ring: #f6d94c;
+}
+
+/*
+ * Mode sombre : les nuances neutres (blanc, gris, ardoise) et les fonds clairs des couleurs d'état sont inversés.
+ * Les classes existantes (bg-white, text-slate-700, border-gray-300...) suivent sans être réécrites.
+ * La couleur principale (brand) est inversée par l'interface selon la palette choisie (useApplication).
+ */
+.dark {
+    --color-white: #161b19;
+    --color-page: #0e1211;
+
+    --color-gray-50: #1b2120;
+    --color-gray-100: #212826;
+    --color-gray-200: #2c3431;
+    --color-gray-300: #3a4440;
+    --color-gray-400: #6e7a75;
+    --color-gray-500: #8d9894;
+    --color-gray-600: #aab3b0;
+    --color-gray-700: #c5ccc9;
+    --color-gray-800: #dde2e0;
+    --color-gray-900: #eef1f0;
+    --color-gray-950: #f7f8f8;
+
+    --color-slate-50: #1a2023;
+    --color-slate-100: #20272b;
+    --color-slate-200: #2b3337;
+    --color-slate-300: #3a4449;
+    --color-slate-400: #7d8b92;
+    --color-slate-500: #94a1a8;
+    --color-slate-600: #b0bbc0;
+    --color-slate-700: #cbd3d7;
+    --color-slate-800: #e1e6e9;
+    --color-slate-900: #eff2f4;
+    --color-slate-950: #f7f9fa;
+
+    --color-leaf-50: #12261a;
+    --color-leaf-100: #183322;
+    --color-leaf-400: #4fa968;
+    --color-leaf-600: #74d08d;
+
+    --color-sun-50: #272110;
+    --color-sun-100: #3a3112;
+    --color-sun-200: #5a4a12;
+    --color-sun-300: #806a14;
+    --color-sun-400: #b4951c;
+    --color-sun-500: #d4ae16;
+    --color-sun-600: #e5c43f;
+    --color-sun-700: #f2d96e;
+
+    --color-red-50: #2b1515;
+    --color-red-100: #3a1a1a;
+    --color-red-200: #5c2424;
+    --color-red-300: #7d2e2e;
+
+    --background: #0e1211;
+    --foreground: #e6ece9;
+    --card: #161b19;
+    --card-foreground: #e6ece9;
+    --popover: #161b19;
+    --popover-foreground: #e6ece9;
+    --primary-foreground: #ffffff;
+    --secondary: #3a3112;
+    --secondary-foreground: #f2d96e;
+    --muted: #1f2624;
+    --muted-foreground: #9aa7a1;
+    --accent: #1f2b26;
+    --accent-foreground: #cfe6da;
+    --destructive: #e05252;
+    --border: #2c3431;
+    --input: #3a4440;
 }
 
 @theme inline {
@@ -151,6 +224,16 @@
     [role='dialog'] .grid > *,
     [role='alertdialog'] .grid > * {
         min-width: 0;
+    }
+
+    /* Zone qui défile sans barre visible (menu latéral) : molette, glisser et clavier fonctionnent toujours. */
+    .sans-barre {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .sans-barre::-webkit-scrollbar {
+        display: none;
     }
 
     ::selection {

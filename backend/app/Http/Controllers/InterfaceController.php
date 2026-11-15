@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\ReglagesApplication;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -16,7 +17,7 @@ class InterfaceController extends Controller
 
     public function __invoke(Request $request): Response|JsonResponse
     {
-        if ($request->is('api/*', 'sanctum/*', 'telechargements/*', 'verifier/*')) {
+        if ($request->is('api/*', 'sanctum/*', 'telechargements/*', 'verifier/*', 'marque/*')) {
             return response()->json(['message' => 'Adresse introuvable.'], 404);
         }
 
@@ -29,7 +30,7 @@ class InterfaceController extends Controller
         return response(file_get_contents($chemin), 200, [
             'Content-Type' => 'text/html; charset=UTF-8',
             'Cache-Control' => 'no-cache, private',
-            'X-Robots-Tag' => 'noindex, nofollow',
+            ...(ReglagesApplication::indexationAutorisee() ? [] : ['X-Robots-Tag' => 'noindex, nofollow']),
         ]);
     }
 }

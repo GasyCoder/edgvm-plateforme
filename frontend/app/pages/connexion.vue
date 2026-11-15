@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 definePageMeta({ layout: 'connexion' })
-useHead({ title: 'Connexion, plateforme EDGVM' })
+useHead({ title: 'Connexion' })
 
 const route = useRoute()
 const { connecter } = useAuth()

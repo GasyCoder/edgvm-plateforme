@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
 definePageMeta({ layout: 'connexion' })
-useHead({ title: 'Mot de passe oublié, plateforme EDGVM' })
+useHead({ title: 'Mot de passe oublié' })
 
 const api = useApi()
 const email = ref('')

@@ -10,7 +10,7 @@ const { sections, estActif } = useNavigation()
     <div v-for="(section, index) in sections" :key="section.titre">
       <h6
         class="relative whitespace-nowrap px-6 pb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400 transition-opacity"
-        :class="[index === 0 ? 'pt-1' : 'pt-8', compact ? 'opacity-0' : '']"
+        :class="[index === 0 ? 'pt-1' : 'pt-6', compact ? 'opacity-0' : '']"
       >
         {{ section.titre }}
         <span v-if="compact && index > 0" class="absolute inset-x-4 top-1/2 h-px bg-gray-200" />
@@ -19,7 +19,7 @@ const { sections, estActif } = useNavigation()
         <li v-for="lien in section.liens" :key="lien.libelle">
           <NuxtLink
             :to="lien.vers"
-            class="group flex items-center py-2.5 pe-6 ps-6 font-bold tracking-tight transition-colors"
+            class="group flex items-center py-2 pe-6 ps-6 font-bold tracking-tight transition-colors"
             :aria-current="estActif(lien.vers) ? 'page' : undefined"
             :title="compact ? lien.libelle : undefined"
             @click="emit('choisi')"

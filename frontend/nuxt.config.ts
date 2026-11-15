@@ -20,7 +20,6 @@ export default defineNuxtConfig({
   app: {
     head: {
       htmlAttrs: { lang: 'fr' },
-      title: 'Plateforme EDGVM',
       meta: [
         { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
         { name: 'theme-color', content: '#14563f' },
@@ -39,6 +38,7 @@ export default defineNuxtConfig({
       '/sanctum': { target: `${apiLocale}/sanctum`, changeOrigin: false },
       '/telechargements': { target: `${apiLocale}/telechargements`, changeOrigin: false },
       '/verifier': { target: `${apiLocale}/verifier`, changeOrigin: false },
+      '/marque': { target: `${apiLocale}/marque`, changeOrigin: false },
     },
   },
 })

@@ -50,6 +50,18 @@ const brouillon = useSessionStorage('edgvm-nouveau-doctorant', vide(), { mergeDe
 const formulaire = reactive(props.doctorant ? depuisDossier(props.doctorant) : brouillon.value)
 if (!props.doctorant) watch(formulaire, valeur => { brouillon.value = valeur }, { deep: true })
 const photo = ref<File | null>(null)
+
+/* Prochain matricule automatique (Paramètres > Matricule), montré à la création */
+const prochainMatricule = ref('')
+onMounted(async () => {
+  if (props.doctorant) return
+  try {
+    prochainMatricule.value = (await api<{ data: { apercu: string } }>('/api/reglages-matricule')).data.apercu
+  }
+  catch {
+    /* Simple indication : rien à signaler si elle manque. */
+  }
+})
 watch(anneeCourante, (annee) => {
   if (annee && !formulaire.inscription.annee_universitaire_id) formulaire.inscription.annee_universitaire_id = annee.id
 }, { immediate: true })
@@ -354,7 +366,7 @@ const recapitulatif = computed(() => [
               </div>
             </div>
             <div class="grid gap-4 sm:grid-cols-2">
-              <ChampFormulaire libelle="Matricule" pour="matricule" :erreur="erreurs.matricule" aide="Laisser vide pour un numéro automatique (EDGVM-2026-0001).">
+              <ChampFormulaire libelle="Matricule" pour="matricule" :erreur="erreurs.matricule" :aide="modification ? 'Modifiable si besoin ; il doit rester unique.' : `Laisser vide pour un numéro automatique${prochainMatricule ? ` (${prochainMatricule})` : ''}.`">
                 <Input id="matricule" v-model="formulaire.matricule" :aria-invalid="!!erreurs.matricule" />
               </ChampFormulaire>
               <div class="flex items-start justify-between gap-4 rounded-md border p-4">

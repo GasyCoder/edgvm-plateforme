@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\StatutDoctorant;
 use App\Enums\StatutInscription;
+use App\Support\NumeroMatricule;
 use Database\Factories\DoctorantFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -200,14 +201,10 @@ class Doctorant extends Model
     }
 
     /**
-     * Matricule suivant pour l'année : EDGVM-2026-0001.
+     * Matricule automatique suivant, selon le modèle réglé dans Paramètres > Matricule (EDGVM-2026-0001 par défaut).
      */
     public static function prochainMatricule(?int $annee = null): string
     {
-        $prefixe = 'EDGVM-'.($annee ?? now()->year).'-';
-        $dernier = static::query()->where('matricule', 'like', $prefixe.'%')->max('matricule');
-        $suivant = $dernier ? ((int) substr($dernier, strlen($prefixe))) + 1 : 1;
-
-        return $prefixe.str_pad((string) $suivant, 4, '0', STR_PAD_LEFT);
+        return NumeroMatricule::suivant(annee: $annee);
     }
 }

@@ -126,6 +126,23 @@ Règles métier :
 Canaux : plateforme (base de données), e-mail, SMS, WhatsApp. Voir le skill `edgvm-notifications`.
 Les numéros sont en E.164. SMS et WhatsApp passent par des canaux maison derrière une interface, avec un pilote `log` en local et dans les tests (aucun envoi réel hors production).
 
+## Réglages de l'application
+
+- `App\Support\ReglagesApplication` (table `reglages`, Paramètres > Application) : nom et sous-titre de la plateforme, École (nom, université, ministère, arrêté d'habilitation, description), directeur (`actes.signataire_nom`, `actes.signataire_grade`, `actes.signataire_titre`, partagés avec les actes), logos (`actes.logo_droite` EDGVM, `actes.logo_gauche` Université, servis publiquement par `/marque/{cle}`), indexation, maintenance, apparence.
+- Tout document généré (actes, reçus, carte de doctorat) lit ces réglages : ne jamais écrire en dur le nom de l'École, de l'Université ou du directeur.
+- `GET /api/application` (sans connexion) donne ce que l'interface lit au démarrage (`useApplication`, plugin `application.client.ts`).
+- Maintenance : middleware `ModeMaintenance` sur l'API connectée ; seul `super_admin` passe, les autres reçoivent 503 `{ message, maintenance: true }`.
+- `robots.txt` est servi par Laravel (fermé par défaut) ; ne pas remettre de fichier statique dans `public/`.
+- Mode sombre : variables CSS inversées sous `.dark` dans `main.css` ; la couleur principale (`brand`) est posée par `useApplication` selon la palette choisie.
+
+## Séances de communication
+
+- `seances` (séminaire doctoral, état d'avancement, autre) : date, heure de début, durée d'un passage, pause, lieu, `exige_paiement_solde`, statut `brouillon` / `publiee` / `annulee`.
+- `passages` : un doctorant par créneau (`debut`, `fin`, heures locales sans fuseau), unique par séance ; `intervenants_passage` : personnes des équipes (`membres_equipe`) avec le rôle `moderateur` ou `jury`.
+- `App\Support\Disponibilites` : une personne ou un doctorant ne peut pas être à deux passages qui se chevauchent (toutes séances non annulées). Toute affectation, modification d'horaire ou replanification passe par ce contrôle ; en cas de conflit, rien n'est enregistré.
+- Paiement : si `exige_paiement_solde`, un doctorant dont le reste à payer est supérieur à 0 ne peut pas être programmé (`Seance::raisonInadmissible`).
+- Convocations (`SeanceController::convoquer`) : `ConvocationPassage` au doctorant (cloche et e-mail), `ConvocationIntervenant` à chaque modérateur ou jury (e-mail ; cloche aussi si un compte a la même adresse).
+
 ## Skills disponibles
 
 Dans `.agents/skills/` (Codex) et `.claude/skills/` (Claude Code, lien vers le même dossier) :

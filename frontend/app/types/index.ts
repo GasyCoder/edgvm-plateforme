@@ -283,3 +283,51 @@ export interface NotificationPlateforme {
   lue: boolean
   cree_le: string
 }
+
+export type TypeSeance = 'seminaire' | 'etat_avancement' | 'autre'
+export type RoleIntervenant = 'moderateur' | 'jury'
+
+export interface IntervenantPassage {
+  id: number
+  nom_avec_titre: string
+  role: RoleIntervenant
+  role_libelle: string
+  equipe: string | null
+  email: string | null
+}
+
+export interface PassageSeance {
+  id: number
+  debut: string
+  fin: string
+  heure_debut: string
+  heure_fin: string
+  duree: number
+  sujet: string | null
+  ordre: number
+  convoque_le: string | null
+  doctorant: { id: string, nom_complet: string, matricule: string, photo_url: string | null, niveau: string | null, est_derogation: boolean, equipe: string | null }
+  intervenants: IntervenantPassage[]
+}
+
+export interface Seance {
+  id: number
+  type: TypeSeance
+  type_libelle: string
+  titre: string
+  description: string | null
+  lieu: string | null
+  date: string
+  heure_debut: string
+  heure_fin?: string | null
+  duree_passage: number
+  pause: number
+  annee_universitaire_id: number | null
+  exige_paiement_solde: boolean
+  statut: 'brouillon' | 'publiee' | 'annulee'
+  statut_libelle: string
+  convocations_envoyees_le: string | null
+  passages_count?: number
+  passages?: PassageSeance[]
+  peut: { modifier: boolean }
+}

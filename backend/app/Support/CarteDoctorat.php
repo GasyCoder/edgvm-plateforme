@@ -5,23 +5,19 @@ namespace App\Support;
 use App\Enums\StatutInscription;
 use App\Models\Doctorant;
 use App\Models\Inscription;
-use App\Models\Reglage;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 /**
- * Carte de doctorat (une carte par page, format carte 17 x 10 cm), d'après le modèle papier de l'École :
+ * Carte de doctorat (une carte par page, format carte 17 x 10 cm), d'après le modèle papier de l'École.
+ * Textes, directeur et logos viennent de Paramètres > Application :
  * en-tête ministère et arrêté d'habilitation, photo et identité, années de thèse à viser chaque année.
  */
 class CarteDoctorat
 {
     /** Largeur et hauteur en points (1 cm = 28,3465 pt) */
     public const FORMAT = [0, 0, 481.89, 283.46];
-
-    public const MINISTERE = "MINISTERE DE L'ENSEIGNEMENT SUPERIEUR ET DE LA RECHERCHE SCIENTIFIQUE";
-
-    public const ARRETE = "Arrêté d'habilitation N° 12259-2022-MESupRES du 29 Avril 2022.";
 
     /**
      * @param  Collection<int, Doctorant>  $doctorants
@@ -50,9 +46,10 @@ class CarteDoctorat
             ]),
             'logo_gauche' => ReglagesActes::dataUri(ReglagesActes::image('logo_gauche'), 'logo_gauche'),
             'logo_droite' => ReglagesActes::dataUri(ReglagesActes::image('logo_droite'), 'logo_droite'),
-            'ministere' => Reglage::valeur('carte.ministere', self::MINISTERE),
-            'arrete' => Reglage::valeur('carte.arrete', self::ARRETE),
-            'directeur' => ReglagesActes::texte('signataire_nom'),
+            'ministere' => ReglagesApplication::texte('ecole.ministere'),
+            'arrete' => ReglagesApplication::texte('ecole.arrete'),
+            'universite' => ReglagesApplication::texte('ecole.universite'),
+            'directeur' => ReglagesApplication::directeurAvecGrade(),
         ])->render();
     }
 
