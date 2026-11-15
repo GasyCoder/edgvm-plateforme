@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * Passage d'un doctorant lors d'une séance : créneau, sujet présenté, modérateurs et jury.
  */
 #[Table('passages')]
-#[Fillable(['doctorant_id', 'debut', 'fin', 'sujet', 'ordre', 'convoque_le'])]
+#[Fillable(['doctorant_id', 'debut', 'fin', 'sujet', 'ordre', 'convoque_le', 'convocation_empreinte'])]
 class Passage extends Model
 {
     /** @use HasFactory<PassageFactory> */
@@ -49,6 +49,37 @@ class Passage extends Model
             ->withTimestamps()
             ->orderByRaw("CASE intervenants_passage.role WHEN '".RoleIntervenant::Moderateur->value."' THEN 0 ELSE 1 END")
             ->orderBy('membres_equipe.nom');
+    }
+
+    /**
+     * Ce que dit la convocation : si l'une de ces informations change, le passage est à reconvoquer.
+     */
+    public function empreinteConvocation(): string
+    {
+        $this->loadMissing(['seance', 'intervenants']);
+
+        return hash('sha256', json_encode([
+            $this->seance->titre,
+            $this->seance->lieu,
+            $this->debut->format('Y-m-d H:i'),
+            $this->fin->format('Y-m-d H:i'),
+            $this->sujet,
+            $this->intervenants->map(fn (MembreEquipe $membre) => $membre->id.':'.$membre->pivot->role)->sort()->values()->all(),
+        ]));
+    }
+
+    /**
+     * « jamais » envoyée, « a_jour », ou « modifiee » depuis l'envoi.
+     */
+    public function etatConvocation(): string
+    {
+        return match (true) {
+            $this->convoque_le === null => 'jamais',
+            /* Convoqué avant que l'empreinte existe : on ne le compte pas comme modifié. */
+            $this->convocation_empreinte === null => 'a_jour',
+            $this->convocation_empreinte !== $this->empreinteConvocation() => 'modifiee',
+            default => 'a_jour',
+        };
     }
 
     protected function casts(): array

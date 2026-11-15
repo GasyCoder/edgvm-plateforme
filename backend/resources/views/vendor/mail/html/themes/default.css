@@ -1,0 +1,336 @@
+/*
+ * Courriels de la plateforme EDGVM : sobres, fond clair, une seule couleur d'accent (le vert de l'École).
+ * Ce fichier est inscrit en ligne dans chaque e-mail : propriétés simples, comprises par les messageries.
+ */
+
+/* Base */
+
+body,
+body *:not(html):not(style):not(br):not(tr):not(code) {
+    box-sizing: border-box;
+    font-family: 'Open Sans', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    position: relative;
+}
+
+body {
+    -webkit-text-size-adjust: none;
+    background-color: #ffffff;
+    color: #33413a;
+    height: 100%;
+    line-height: 1.5;
+    margin: 0;
+    padding: 0;
+    width: 100% !important;
+}
+
+p,
+ul,
+ol,
+blockquote {
+    line-height: 1.6;
+    text-align: left;
+}
+
+a {
+    color: #1d6049;
+}
+
+a img {
+    border: none;
+}
+
+/* Typographie */
+
+h1 {
+    color: #1f2a24;
+    font-size: 18px;
+    font-weight: bold;
+    margin-top: 0;
+    text-align: left;
+}
+
+h2 {
+    color: #14563f;
+    font-size: 16px;
+    font-weight: bold;
+    margin-top: 0;
+    text-align: left;
+}
+
+h3 {
+    color: #33413a;
+    font-size: 14px;
+    font-weight: bold;
+    margin-top: 0;
+    text-align: left;
+}
+
+p {
+    color: #33413a;
+    font-size: 15px;
+    line-height: 1.65em;
+    margin-top: 0;
+    text-align: left;
+}
+
+p.sub {
+    font-size: 12px;
+}
+
+img {
+    max-width: 100%;
+}
+
+/* Mise en page */
+
+.wrapper {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 100%;
+    background-color: #ffffff;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+
+.content {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 100%;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+
+/* En-tête */
+
+.header {
+    padding: 28px 0 0;
+    text-align: center;
+}
+
+.header-inner {
+    -premailer-width: 680px;
+    border-bottom: 1px solid #e3e8e5;
+    margin: 0 auto;
+    padding-bottom: 18px;
+    width: 680px;
+}
+
+.header-ecole {
+    text-align: left;
+}
+
+.header-nom {
+    color: #14563f;
+    font-size: 20px;
+    font-weight: bold;
+    letter-spacing: -0.2px;
+}
+
+.header-ecole-nom {
+    color: #6b7a72;
+    font-size: 12px;
+}
+
+.logo {
+    height: 52px;
+    max-height: 52px;
+    width: 52px;
+}
+
+.logo-universite {
+    height: 40px;
+    max-height: 40px;
+}
+
+/* Corps */
+
+.body {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 100%;
+    background-color: #ffffff;
+    border: 0;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+
+.inner-body {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 680px;
+    background-color: #ffffff;
+    border: 0;
+    margin: 0 auto;
+    padding: 0;
+    width: 680px;
+}
+
+.inner-body a {
+    word-break: break-all;
+}
+
+/* Lien de secours */
+
+.subcopy {
+    border-top: 1px solid #e2e8e4;
+    margin-top: 25px;
+    padding-top: 20px;
+}
+
+.subcopy p {
+    color: #6b7a72;
+    font-size: 12px;
+}
+
+/* Pied de page */
+
+.footer {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 680px;
+    border-top: 1px solid #e3e8e5;
+    margin: 0 auto;
+    padding: 0;
+    text-align: center;
+    width: 680px;
+}
+
+.footer p {
+    color: #8a968f;
+    font-size: 12px;
+    line-height: 1.5em;
+    text-align: center;
+}
+
+.footer p strong {
+    color: #55625b;
+}
+
+.footer a {
+    color: #8a968f;
+    text-decoration: underline;
+}
+
+/* Tableaux */
+
+.table table {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 100%;
+    margin: 24px auto;
+    width: 100%;
+}
+
+.table th {
+    border-bottom: 1px solid #e2e8e4;
+    color: #6b7a72;
+    font-size: 13px;
+    font-weight: normal;
+    margin: 0;
+    padding-bottom: 8px;
+    text-align: left;
+}
+
+.table td {
+    border-bottom: 1px solid #eef2ef;
+    color: #33413a;
+    font-size: 14px;
+    line-height: 18px;
+    margin: 0;
+    padding: 10px 0;
+}
+
+.content-cell {
+    max-width: 100vw;
+    padding: 28px 0;
+}
+
+.footer .content-cell {
+    padding: 20px 0 32px;
+}
+
+/* Boutons */
+
+.action {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 100%;
+    margin: 28px auto;
+    padding: 0;
+    text-align: center;
+    width: 100%;
+    float: unset;
+}
+
+.button {
+    -webkit-text-size-adjust: none;
+    border-radius: 6px;
+    color: #ffffff;
+    display: inline-block;
+    font-size: 15px;
+    font-weight: bold;
+    overflow: hidden;
+    text-decoration: none;
+}
+
+.button-blue,
+.button-primary,
+.button-green,
+.button-success {
+    background-color: #14563f;
+    border-bottom: 11px solid #14563f;
+    border-left: 22px solid #14563f;
+    border-right: 22px solid #14563f;
+    border-top: 11px solid #14563f;
+}
+
+.button-red,
+.button-error {
+    background-color: #b42828;
+    border-bottom: 11px solid #b42828;
+    border-left: 22px solid #b42828;
+    border-right: 22px solid #b42828;
+    border-top: 11px solid #b42828;
+}
+
+/* Encadré (informations importantes) */
+
+.panel {
+    border-left: #14563f solid 3px;
+    margin: 21px 0;
+}
+
+.panel-content {
+    background-color: #f3f7f5;
+    color: #33413a;
+    padding: 16px;
+}
+
+.panel-content p {
+    color: #33413a;
+}
+
+.panel-item {
+    padding: 0;
+}
+
+.panel-item p:last-of-type {
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+/* Utilitaires */
+
+.break-all {
+    word-break: break-all;
+}
+
+/* Gras : les informations à retenir (séance, date, heure, lieu, montant) */
+
+strong {
+    color: #1f2a24;
+    font-weight: bold;
+}

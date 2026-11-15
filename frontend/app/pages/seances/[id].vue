@@ -101,11 +101,17 @@ async function enregistrerPassage() {
 
 /* Convocations */
 const confirmationConvocation = ref(false)
-const nonConvoques = computed(() => passages.value.filter(p => !p.convoque_le).length)
+const jamaisConvoques = computed(() => passages.value.filter(p => p.convocation === 'jamais').length)
+const modifies = computed(() => passages.value.filter(p => p.convocation === 'modifiee').length)
+const aEnvoyer = computed(() => jamaisConvoques.value + modifies.value)
+const modeEnvoi = ref<'intelligent' | 'tous'>('intelligent')
+watch(confirmationConvocation, (ouvert) => { if (ouvert) modeEnvoi.value = aEnvoyer.value ? 'intelligent' : 'tous' })
 const sansModerateur = computed(() => passages.value.filter(p => !p.intervenants.some(i => i.role === 'moderateur')).length)
-async function convoquer(nouveaux: boolean) {
+/* Envoi : intelligent (jamais convoqués et modifiés), à tous, ou à certains passages (un par un, sélection) */
+async function convoquer(mode: 'intelligent' | 'tous' | 'passages', ids: number[] = []) {
   confirmationConvocation.value = false
-  const reponse = await appeler(`/api/seances/${seance.value!.id}/convoquer`, { method: 'POST', body: { nouveaux } }) as { sans_email?: string[] } | null
+  const reponse = await appeler(`/api/seances/${seance.value!.id}/convoquer`, { method: 'POST', body: { mode, passages: ids } }) as { sans_email?: string[] } | null
+  if (reponse && mode === 'passages') selection.value = []
   if (reponse?.sans_email?.length) toast.warning(`Sans e-mail, non convoqués : ${reponse.sans_email.join(', ')}.`)
 }
 
@@ -160,7 +166,10 @@ const td = 'border-b border-gray-200 px-2 py-3 align-top first:ps-4 last:pe-4 sm
         <div v-if="gerer" class="flex flex-wrap gap-2">
           <Button variant="outline" class="bg-white" @click="dialogueSeance = true"><Pencil /> Modifier</Button>
           <Button variant="outline" class="bg-white" @click="dialogueCandidats = true"><UserPlus /> Programmer des doctorants</Button>
-          <Button :disabled="!passages.length || occupe" @click="confirmationConvocation = true"><Send /> {{ seance.convocations_envoyees_le ? 'Convoquer à nouveau' : 'Envoyer les convocations' }}</Button>
+          <Button :disabled="!passages.length || occupe" @click="confirmationConvocation = true">
+            <Send /> Envoyer les convocations
+            <span v-if="aEnvoyer" class="rounded-full bg-white/20 px-1.5 text-xs font-bold tabular-nums">{{ aEnvoyer }}</span>
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger as-child><Button variant="outline" size="icon" class="bg-white" aria-label="Plus d'actions"><MoreHorizontal /></Button></DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -183,6 +192,7 @@ const td = 'border-b border-gray-200 px-2 py-3 align-top first:ps-4 last:pe-4 sm
           <template v-if="selection.length && gerer">
             <span class="text-sm font-semibold text-slate-700">{{ selection.length }} passage{{ selection.length > 1 ? 's' : '' }} sélectionné{{ selection.length > 1 ? 's' : '' }}</span>
             <Button size="sm" @click="affecterA(passages.filter(p => selection.includes(p.id)))"><UserCheck /> Modérateurs et jury</Button>
+            <Button size="sm" variant="outline" :disabled="occupe" @click="convoquer('passages', selection)"><Send /> Convoquer la sélection</Button>
             <Button size="sm" variant="ghost" @click="selection = []"><X /> Désélectionner</Button>
           </template>
           <template v-else>
@@ -213,7 +223,9 @@ const td = 'border-b border-gray-200 px-2 py-3 align-top first:ps-4 last:pe-4 sm
                 <td :class="td" class="whitespace-nowrap">
                   <span class="block text-sm font-bold tabular-nums text-slate-700">{{ passage.heure_debut }}</span>
                   <span class="block text-xs tabular-nums text-slate-400">à {{ passage.heure_fin }}</span>
-                  <span v-if="passage.convoque_le" class="mt-1 inline-block rounded bg-leaf-50 px-1.5 text-[11px] font-medium text-leaf-600">Convoqué</span>
+                  <span v-if="passage.convocation === 'a_jour'" class="mt-1 inline-block rounded bg-leaf-50 px-1.5 text-[11px] font-medium text-leaf-600" :title="passage.convoque_le ? `Envoyée ${depuis(passage.convoque_le)}` : undefined">Convoqué</span>
+                  <span v-else-if="passage.convocation === 'modifiee'" class="mt-1 inline-block rounded bg-sun-100 px-1.5 text-[11px] font-medium text-sun-700" title="Horaire, sujet, lieu, modérateurs ou jury changés depuis l'envoi">À reconvoquer</span>
+                  <span v-else-if="gerer && seance.convocations_envoyees_le" class="mt-1 inline-block rounded bg-gray-100 px-1.5 text-[11px] font-medium text-slate-500">Non convoqué</span>
                 </td>
                 <td :class="td">
                   <div class="flex items-start gap-3">
@@ -247,6 +259,7 @@ const td = 'border-b border-gray-200 px-2 py-3 align-top first:ps-4 last:pe-4 sm
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem @select="modifierPassage(passage)"><Clock /> Modifier l'horaire ou le sujet</DropdownMenuItem>
                         <DropdownMenuItem @select="affecterA([passage])"><UserCheck /> Modérateurs et jury</DropdownMenuItem>
+                        <DropdownMenuItem @select="convoquer('passages', [passage.id])"><Send /> {{ passage.convocation === 'jamais' ? 'Envoyer la convocation' : 'Renvoyer la convocation' }}</DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem class="text-destructive" @select="retirerPassage(passage)"><Trash2 /> Retirer de la séance</DropdownMenuItem>
                       </DropdownMenuContent>
@@ -292,18 +305,41 @@ const td = 'border-b border-gray-200 px-2 py-3 align-top first:ps-4 last:pe-4 sm
 
       <!-- Convocations -->
       <AlertDialog v-model:open="confirmationConvocation">
-        <AlertDialogContent>
+        <AlertDialogContent class="sm:max-w-lg">
           <AlertDialogHeader>
-            <AlertDialogTitle>Envoyer les convocations ?</AlertDialogTitle>
+            <AlertDialogTitle>Envoyer les convocations</AlertDialogTitle>
             <AlertDialogDescription>
-              Chaque doctorant reçoit son horaire, et chaque modérateur et membre du jury la liste de ses passages, par e-mail et dans la plateforme (s'il y a un compte).
-              <template v-if="sansModerateur"> Attention : {{ sansModerateur }} passage(s) sans modérateur.</template>
+              Chaque doctorant reçoit son horaire ; chaque modérateur et membre du jury, la liste complète de ses passages. Par e-mail, et dans la plateforme s'il y a un compte.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter class="gap-2 sm:gap-2">
+          <fieldset class="grid gap-2">
+            <legend class="sr-only">À qui envoyer</legend>
+            <label class="flex cursor-pointer gap-3 rounded-md border p-3 text-sm has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand-500" :class="[modeEnvoi === 'intelligent' ? 'border-brand-500 bg-brand-50' : 'border-gray-300', !aEnvoyer ? 'cursor-not-allowed opacity-60' : '']">
+              <input v-model="modeEnvoi" type="radio" value="intelligent" class="mt-1 accent-brand-700" :disabled="!aEnvoyer">
+              <span>
+                <span class="block font-semibold text-slate-700">Seulement ce qui reste à envoyer <span class="font-normal text-slate-400">(conseillé)</span></span>
+                <span class="text-slate-500">
+                  <template v-if="aEnvoyer">{{ [jamaisConvoques ? `${jamaisConvoques} jamais convoqué(s)` : '', modifies ? `${modifies} modifié(s) depuis l'envoi` : ''].filter(Boolean).join(', ') }}. Les autres ne reçoivent rien en double.</template>
+                  <template v-else>Tout le monde a déjà une convocation à jour.</template>
+                </span>
+              </span>
+            </label>
+            <label class="flex cursor-pointer gap-3 rounded-md border p-3 text-sm has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand-500" :class="modeEnvoi === 'tous' ? 'border-brand-500 bg-brand-50' : 'border-gray-300'">
+              <input v-model="modeEnvoi" type="radio" value="tous" class="mt-1 accent-brand-700">
+              <span>
+                <span class="block font-semibold text-slate-700">Tout le monde ({{ passages.length }} passage{{ passages.length > 1 ? 's' : '' }})</span>
+                <span class="text-slate-500">Pour un rappel la veille, par exemple.</span>
+              </span>
+            </label>
+          </fieldset>
+          <p v-if="sansModerateur" class="text-sm text-sun-700">Attention : {{ sansModerateur }} passage(s) sans modérateur.</p>
+          <p class="text-xs text-slate-400">Pour un seul doctorant ou une sélection : utilisez le menu du passage ou cochez les passages.</p>
+          <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <Button v-if="seance.convocations_envoyees_le && nonConvoques" variant="outline" @click="convoquer(true)">Seulement les {{ nonConvoques }} nouveau(x)</Button>
-            <Button @click="convoquer(false)"><Send /> {{ seance.convocations_envoyees_le ? 'Tout renvoyer' : 'Envoyer' }}</Button>
+            <Button :disabled="occupe || (modeEnvoi === 'intelligent' && !aEnvoyer)" @click="convoquer(modeEnvoi)">
+              <Loader2 v-if="occupe" class="animate-spin" /><Send v-else />
+              Envoyer {{ modeEnvoi === 'intelligent' ? `(${aEnvoyer})` : `à tous (${passages.length})` }}
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

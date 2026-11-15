@@ -92,6 +92,14 @@ class Seance extends Model
             ->orWhereHas('intervenants', fn (Builder $m) => $m->where('email', $user->email)));
     }
 
+    /** « Séminaire doctoral de décembre », ou « État d'avancement, EAD 1 » si le titre ne dit pas déjà le type. */
+    public function intitule(): string
+    {
+        return str_starts_with(mb_strtolower($this->titre), mb_strtolower($this->type->libelle()))
+            ? $this->titre
+            : $this->type->libelle().', '.$this->titre;
+    }
+
     public function estModifiable(): bool
     {
         return $this->statut !== StatutSeance::Annulee;

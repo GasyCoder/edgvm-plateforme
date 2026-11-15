@@ -306,6 +306,8 @@ export interface PassageSeance {
   sujet: string | null
   ordre: number
   convoque_le: string | null
+  /** jamais envoyée, à jour, ou modifiée depuis l'envoi (horaire, lieu, sujet, modérateurs, jury) */
+  convocation: 'jamais' | 'a_jour' | 'modifiee'
   doctorant: { id: string, nom_complet: string, matricule: string, photo_url: string | null, niveau: string | null, est_derogation: boolean, equipe: string | null }
   intervenants: IntervenantPassage[]
 }

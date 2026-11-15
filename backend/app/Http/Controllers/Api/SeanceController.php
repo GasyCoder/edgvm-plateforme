@@ -23,7 +23,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\Rule;
@@ -352,35 +351,50 @@ class SeanceController extends Controller
     }
 
     /**
-     * Envoie les convocations : à chaque doctorant (plateforme et e-mail), et à chaque modérateur ou jury
-     * (e-mail, plus la cloche s'il a un compte avec la même adresse). « nouveaux » : seulement les passages pas encore convoqués.
+     * Envoie les convocations, au choix :
+     *  - « intelligent » (par défaut) : passages jamais convoqués, ou modifiés depuis l'envoi (horaire, lieu, sujet, modérateurs, jury) ;
+     *  - « tous » : tous les passages ;
+     *  - « passages » : seulement ceux de la liste (un par un ou une sélection).
+     * Chaque doctorant concerné reçoit sa convocation (cloche et e-mail). Chaque modérateur ou jury des passages concernés
+     * reçoit la liste complète de ses passages dans la séance (e-mail, et cloche s'il a un compte avec la même adresse).
      */
     public function convoquer(Request $request, Seance $seance): JsonResponse
     {
         $this->authorize('update', $seance);
         abort_unless($seance->estModifiable(), 409, 'Séance annulée.');
-        $seance->load(['passages.doctorant.user', 'passages.intervenants']);
-        $passages = $seance->passages->when($request->boolean('nouveaux'), fn (Collection $liste) => $liste->whereNull('convoque_le'));
+        $donnees = $request->validate([
+            'mode' => ['nullable', Rule::in(['intelligent', 'tous', 'passages'])],
+            'passages' => ['required_if:mode,passages', 'array'],
+            'passages.*' => ['integer'],
+        ]);
+        $mode = $donnees['mode'] ?? 'intelligent';
+
+        $seance->load(['passages.doctorant.user', 'passages.doctorant.inscriptionCourante', 'passages.intervenants']);
+        $seance->passages->each->setRelation('seance', $seance);
+        $passages = match ($mode) {
+            'tous' => $seance->passages,
+            'passages' => $seance->passages->whereIn('id', $donnees['passages'] ?? [])->values(),
+            default => $seance->passages->filter(fn (Passage $p) => $p->etatConvocation() !== 'a_jour')->values(),
+        };
 
         if ($passages->isEmpty()) {
-            return response()->json(['message' => 'Aucun passage à convoquer.'], 422);
+            return response()->json(['message' => $mode === 'intelligent' ? 'Tout le monde a déjà reçu une convocation à jour.' : 'Aucun passage à convoquer.'], 422);
         }
 
         foreach ($passages as $passage) {
-            $passage->doctorant->user?->notify(new ConvocationPassage($passage->setRelation('seance', $seance)));
+            $passage->doctorant->user?->notify(new ConvocationPassage($passage));
         }
 
         $sansEmail = [];
         $intervenants = 0;
-        $passages->flatMap(fn (Passage $p) => $p->intervenants)->unique('id')->each(function (MembreEquipe $membre) use ($passages, $seance, &$sansEmail, &$intervenants): void {
-            $siens = $passages->filter(fn (Passage $p) => $p->intervenants->contains('id', $membre->id))->values();
-
+        $passages->flatMap(fn (Passage $p) => $p->intervenants)->unique('id')->each(function (MembreEquipe $membre) use ($seance, &$sansEmail, &$intervenants): void {
             if (blank($membre->email)) {
                 $sansEmail[] = $membre->nomAvecTitre();
 
                 return;
             }
 
+            $siens = $seance->passages->filter(fn (Passage $p) => $p->intervenants->contains('id', $membre->id))->values();
             $notification = new ConvocationIntervenant($seance, $membre, $siens);
             ($compte = User::query()->where('email', $membre->email)->first())
                 ? $compte->notify($notification)
@@ -388,12 +402,15 @@ class SeanceController extends Controller
             $intervenants++;
         });
 
-        Passage::query()->whereIn('id', $passages->modelKeys())->update(['convoque_le' => now()]);
+        foreach ($passages as $passage) {
+            $passage->forceFill(['convoque_le' => now(), 'convocation_empreinte' => $passage->empreinteConvocation()])->save();
+        }
         $seance->update(['statut' => StatutSeance::Publiee, 'convocations_envoyees_le' => now()]);
 
         return response()->json([
             'data' => new SeanceResource($seance->refresh()->load(self::RELATIONS)),
-            'message' => "Convocations envoyées : {$passages->count()} doctorant(s), {$intervenants} modérateur(s) et jury.",
+            'message' => "Convocation envoyée à {$passages->count()} doctorant(s) et {$intervenants} modérateur(s) ou membre(s) du jury.",
+            'envoyes' => $passages->count(),
             'sans_email' => $sansEmail,
         ]);
     }

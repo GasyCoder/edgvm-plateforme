@@ -43,6 +43,7 @@ cd backend
 composer install && cp .env.example .env && php artisan key:generate
 php artisan migrate --seed            # en local : comptes admin@, membre@, doctorant@edgvm.test (mot de passe « password »)
 php artisan serve                     # http://localhost:8000
+php artisan queue:work                # envoie les e-mails (notifications en file d'attente)
 php artisan plateforme:creer-admin adresse@exemple.mg   # premier compte d'administration en production
 php artisan test --compact            # tous les tests
 php artisan test --compact --filter=NomDuTest
@@ -142,6 +143,7 @@ Les numéros sont en E.164. SMS et WhatsApp passent par des canaux maison derri�
 - `App\Support\Disponibilites` : une personne ou un doctorant ne peut pas être à deux passages qui se chevauchent (toutes séances non annulées). Toute affectation, modification d'horaire ou replanification passe par ce contrôle ; en cas de conflit, rien n'est enregistré.
 - Paiement : si `exige_paiement_solde`, un doctorant dont le reste à payer est supérieur à 0 ne peut pas être programmé (`Seance::raisonInadmissible`).
 - Convocations (`SeanceController::convoquer`) : `ConvocationPassage` au doctorant (cloche et e-mail), `ConvocationIntervenant` à chaque modérateur ou jury (e-mail ; cloche aussi si un compte a la même adresse).
+- Modes d'envoi : `intelligent` (par défaut : jamais convoqués, ou modifiés depuis l'envoi d'après `passages.convocation_empreinte`), `tous`, `passages` (un ou plusieurs). Un modérateur ou jury reçoit toujours la liste complète de ses passages dans la séance.
 
 ## Skills disponibles
 

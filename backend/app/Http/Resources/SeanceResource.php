@@ -39,7 +39,7 @@ class SeanceResource extends JsonResource
             'statut_libelle' => $this->statut->libelle(),
             'convocations_envoyees_le' => $this->convocations_envoyees_le?->toIso8601String(),
             'passages_count' => $this->whenCounted('passages'),
-            'passages' => $this->whenLoaded('passages', fn () => PassageResource::collection($this->passages->filter(fn (Passage $passage) => $this->passageVisible($passage, $user, $equipes))->values())),
+            'passages' => $this->whenLoaded('passages', fn () => PassageResource::collection($this->passages->each->setRelation('seance', $this->resource)->filter(fn (Passage $passage) => $this->passageVisible($passage, $user, $equipes))->values())),
             'peut' => ['modifier' => $user->can('update', $this->resource)],
         ];
     }

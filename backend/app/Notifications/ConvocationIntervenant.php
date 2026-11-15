@@ -8,6 +8,7 @@ use App\Models\Seance;
 use App\Models\User;
 use App\Support\GabaritActe;
 use App\Support\ReglagesApplication;
+use App\Support\TableauCourriel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -74,13 +75,19 @@ class ConvocationIntervenant extends Notification implements ShouldQueue
         $message = (new MailMessage)
             ->subject($this->titre().', '.$nom)
             ->greeting('Bonjour '.$this->membre->nomAvecTitre().',')
-            ->line('Vous intervenez à « '.$this->seance->titre.' » le '.GabaritActe::dateLongue($this->seance->date).($this->seance->lieu ? ', '.$this->seance->lieu : '').'.');
-
-        foreach ($this->passages as $passage) {
-            $role = $passage->intervenants->firstWhere('id', $this->membre->id)?->pivot->role === 'jury' ? 'jury' : 'modération';
-            $message->line($passage->debut->format('H:i').' à '.$passage->fin->format('H:i').' : '.$passage->doctorant->nomComplet()
-                .($passage->sujet ? ', « '.$passage->sujet.' »' : '').' ('.$role.')');
-        }
+            ->line(TableauCourriel::phrase(
+                $this->seance->lieu
+                    ? 'Vous intervenez comme modérateur ou membre du jury à la séance :seance le :date, :lieu. Voici les passages qui vous concernent.'
+                    : 'Vous intervenez comme modérateur ou membre du jury à la séance :seance le :date. Voici les passages qui vous concernent.',
+                ['seance' => $this->seance->intitule(), 'date' => GabaritActe::dateLongue($this->seance->date), 'lieu' => $this->seance->lieu],
+            ))
+            ->line(TableauCourriel::tableau(['Horaire', 'Doctorant', 'Niveau', 'Sujet', 'Rôle'], $this->passages->map(fn (Passage $passage) => [
+                $passage->debut->format('H:i').'-'.$passage->fin->format('H:i'),
+                $passage->doctorant->nomComplet(),
+                $passage->doctorant->loadMissing('inscriptionCourante')->inscriptionCourante?->niveauAffiche() ?? 'Non inscrit',
+                $passage->sujet ?? $passage->doctorant->sujet_these,
+                $passage->intervenants->firstWhere('id', $this->membre->id)?->pivot->role === 'jury' ? 'Jury' : 'Modération',
+            ])->all(), ['serree', '32%', 'serree', 'masquable', 'serree']));
 
         if ($notifiable instanceof User) {
             $message->action('Voir sur la plateforme', rtrim((string) config('app.frontend_url'), '/').'/seances/'.$this->seance->id);

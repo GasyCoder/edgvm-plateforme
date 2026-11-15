@@ -33,6 +33,7 @@ class PassageResource extends JsonResource
             'sujet' => $this->sujet ?? $this->doctorant->sujet_these,
             'ordre' => $this->ordre,
             'convoque_le' => $this->convoque_le?->toIso8601String(),
+            'convocation' => $this->etatConvocation(),
             'doctorant' => [
                 'id' => $this->doctorant->uuid,
                 'nom_complet' => $this->doctorant->nomComplet(),

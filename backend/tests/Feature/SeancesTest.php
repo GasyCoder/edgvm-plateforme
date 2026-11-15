@@ -147,7 +147,11 @@ it('sends the convocations to students and to moderators and jury, by e-mail and
         return str_contains($donnees['message'], 'de 08:00 à 08:30') && str_contains($donnees['message'], 'Modération') && $donnees['lien'] === '/seances/'.$n->passage->seance_id;
     });
     Notification::assertSentTo($compte, ConvocationIntervenant::class, fn (ConvocationIntervenant $n, array $canaux) => $canaux === ['database', 'mail']);
-    Notification::assertSentOnDemand(ConvocationIntervenant::class, fn (ConvocationIntervenant $n, array $canaux, AnonymousNotifiable $dest) => $dest->routes['mail'] === 'externe@exemple.mg' && $canaux === ['mail']);
+    Notification::assertSentOnDemand(ConvocationIntervenant::class, function (ConvocationIntervenant $n, array $canaux, AnonymousNotifiable $dest): bool {
+        $html = (string) $n->toMail($dest)->render();
+
+        return $dest->routes['mail'] === 'externe@exemple.mg' && $canaux === ['mail'] && str_contains($html, '>Niveau<') && str_contains($html, '>D2<');
+    });
     expect($passage->fresh()->convoque_le)->not->toBeNull();
 
     $this->actingAs($this->admin)->postJson(route('seances.convoquer', $seance), ['nouveaux' => true])->assertUnprocessable();
@@ -167,4 +171,40 @@ it('shows a student only their own passage, and a team member those of their stu
     $this->actingAs(User::factory()->membreEad($this->equipe)->create())->getJson(route('seances.show', $seance))->assertOk()->assertJsonCount(1, 'data.passages');
     $this->actingAs(Doctorant::factory()->create()->user)->getJson(route('seances.show', $seance))->assertForbidden();
     $this->actingAs($rabe->user)->postJson(route('seances.passages', $seance), ['doctorants' => [$rabe->uuid]])->assertForbidden();
+});
+
+it('sends only what is needed: never sent, or changed since, and also one passage or a selection', function (): void {
+    Notification::fake();
+    $seance = seanceLe();
+    $moderateur = MembreEquipe::factory()->for($this->equipe)->create(['email' => 'moderateur@exemple.mg']);
+    $jury = MembreEquipe::factory()->for($this->equipe)->create(['email' => 'jury@exemple.mg']);
+    [$a, $b, $c] = collect(['Aaa', 'Bbb', 'Ccc'])->map(fn (string $nom, int $i) => Passage::factory()->for($seance)->for(doctorantSeance($this->equipe, $nom))
+        ->entre(sprintf('2026-12-10 %02d:00', 8 + $i), sprintf('2026-12-10 %02d:30', 8 + $i))->create())->all();
+    foreach ([$a, $b, $c] as $passage) {
+        $passage->intervenants()->attach($moderateur->id, ['role' => 'moderateur']);
+    }
+
+    $this->actingAs($this->admin)->postJson(route('seances.convoquer', $seance), ['mode' => 'passages', 'passages' => [$a->id]])
+        ->assertOk()->assertJsonPath('envoyes', 1)
+        ->assertJsonPath('data.passages.0.convocation', 'a_jour')->assertJsonPath('data.passages.1.convocation', 'jamais');
+    Notification::assertSentTo($a->doctorant->user, ConvocationPassage::class);
+    Notification::assertNotSentTo($b->doctorant->user, ConvocationPassage::class);
+    Notification::assertSentOnDemand(ConvocationIntervenant::class, fn (ConvocationIntervenant $n) => $n->passages->count() === 3);
+
+    $this->actingAs($this->admin)->postJson(route('seances.convoquer', $seance))->assertOk()->assertJsonPath('envoyes', 2);
+    $this->actingAs($this->admin)->postJson(route('seances.convoquer', $seance))->assertUnprocessable()->assertJsonPath('message', 'Tout le monde a déjà reçu une convocation à jour.');
+
+    Notification::fake();
+    $this->actingAs($this->admin)->putJson(route('passages.update', $b), ['heure_debut' => '11:00', 'duree' => 30])->assertOk();
+    $this->actingAs($this->admin)->postJson(route('seances.affecter', $seance), ['passages' => [$c->id], 'membres' => [$jury->id], 'role' => 'jury'])
+        ->assertJsonPath('data.passages.1.convocation', 'modifiee');
+    expect($a->fresh()->etatConvocation())->toBe('a_jour');
+
+    $this->actingAs($this->admin)->postJson(route('seances.convoquer', $seance), ['mode' => 'intelligent'])->assertOk()->assertJsonPath('envoyes', 2);
+    Notification::assertNotSentTo($a->doctorant->user, ConvocationPassage::class);
+    Notification::assertSentTo($b->doctorant->user, ConvocationPassage::class);
+    Notification::assertSentTo($c->doctorant->user, ConvocationPassage::class);
+
+    $seance->update(['lieu' => 'Salle B']);
+    $this->actingAs($this->admin)->postJson(route('seances.convoquer', $seance), ['mode' => 'tous'])->assertOk()->assertJsonPath('envoyes', 3);
 });
