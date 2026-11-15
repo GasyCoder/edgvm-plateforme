@@ -54,6 +54,9 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    // Adresse de l'interface Nuxt (liens envoyés par e-mail). En production, la même que APP_URL.
+    'frontend_url' => env('FRONTEND_URL', env('APP_URL', 'http://localhost')),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

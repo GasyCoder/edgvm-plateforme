@@ -25,3 +25,9 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Interface Nuxt construite (scripts/construire.sh)
+/public/_nuxt
+/public/app.html
+/public/fonts
+/public/images

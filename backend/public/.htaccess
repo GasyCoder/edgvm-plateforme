@@ -5,6 +5,11 @@
 
     RewriteEngine On
 
+    # HTTPS obligatoire en production
+    RewriteCond %{HTTPS} off
+    RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1)
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
@@ -22,4 +27,17 @@
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
+</IfModule>
+
+# Scripts et styles de l'interface : nom unique à chaque version, gardés un an. Images : une semaine.
+<IfModule mod_headers.c>
+    <FilesMatch "\.(js|css|woff2)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+    <FilesMatch "\.(webp|png|svg|ico)$">
+        Header set Cache-Control "public, max-age=604800"
+    </FilesMatch>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "same-origin"
+    Header always set X-Frame-Options "SAMEORIGIN"
 </IfModule>

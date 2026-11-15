@@ -1,0 +1,153 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* Open Sans hébergée avec l'interface (police variable 400 à 800). */
+@font-face {
+    font-family: 'Open Sans';
+    font-style: normal;
+    font-weight: 400 800;
+    font-display: swap;
+    src: url('/fonts/open-sans-latin.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+    font-family: 'Open Sans';
+    font-style: normal;
+    font-weight: 400 800;
+    font-display: swap;
+    src: url('/fonts/open-sans-latin-ext.woff2') format('woff2');
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/*
+ * Couleurs tirées du logo EDGVM (les mêmes que le site vitrine) :
+ * vert forêt #14563F, vert #267058, vert clair #55B66F, jaune or #C2B24A, jaune vif #F6D94C.
+ */
+@theme {
+    --font-sans: 'Open Sans', ui-sans-serif, system-ui, sans-serif;
+
+    --color-brand-50: #eef6f2;
+    --color-brand-100: #d5eadf;
+    --color-brand-200: #abd4bf;
+    --color-brand-300: #7dbb9c;
+    --color-brand-400: #4e9e7a;
+    --color-brand-500: #2f8463;
+    --color-brand-600: #267058;
+    --color-brand-700: #1d6049;
+    --color-brand-800: #14563f;
+    --color-brand-900: #0f4231;
+    --color-brand-950: #082a1f;
+
+    --color-leaf-50: #effaf1;
+    --color-leaf-100: #d8f2de;
+    --color-leaf-400: #55b66f;
+    --color-leaf-600: #378a49;
+
+    --color-sun-50: #fefbe8;
+    --color-sun-100: #fdf4c2;
+    --color-sun-200: #fae88a;
+    --color-sun-300: #f6d94c;
+    --color-sun-400: #edc72a;
+    --color-sun-500: #d4ae16;
+    --color-sun-600: #b28f12;
+    --color-sun-700: #8a6d12;
+    --color-gold: #c2b24a;
+}
+
+/* Jetons shadcn-vue */
+:root {
+    --radius: 0.5rem;
+
+    --background: #ffffff;
+    --foreground: #18261f;
+    --card: #ffffff;
+    --card-foreground: #18261f;
+    --popover: #ffffff;
+    --popover-foreground: #18261f;
+    --primary: #14563f;
+    --primary-foreground: #ffffff;
+    --secondary: #fdf4c2;
+    --secondary-foreground: #5b4708;
+    --muted: #f3f6f4;
+    --muted-foreground: #56665e;
+    --accent: #eef6f2;
+    --accent-foreground: #14563f;
+    --destructive: #c42b2b;
+    --border: #dce5df;
+    --input: #cfdad3;
+    --ring: #267058;
+
+    --sidebar: #0f4231;
+    --sidebar-foreground: #e6f0ea;
+    --sidebar-primary: #f6d94c;
+    --sidebar-primary-foreground: #0f4231;
+    --sidebar-accent: #1d6049;
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: #1d5a45;
+    --sidebar-ring: #f6d94c;
+}
+
+@theme inline {
+    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) + 4px);
+
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        border-color: var(--color-border, currentcolor);
+    }
+
+    html {
+        scroll-behavior: smooth;
+    }
+
+    body {
+        @apply bg-background font-sans text-foreground antialiased;
+    }
+
+    button:not(:disabled),
+    [role='button']:not(:disabled) {
+        cursor: pointer;
+    }
+
+    ::selection {
+        @apply bg-sun-200 text-brand-900;
+    }
+}
+

@@ -30,7 +30,8 @@ Chaque accès passe par une **Policy** Laravel. Un doctorant ne doit jamais pouv
 | API | `backend/` | PHP 8.3+, Laravel 13, MySQL, Sanctum (authentification SPA par cookie), Pest 5, Pint |
 | Interface | `frontend/` | Nuxt 4 en SPA (`ssr: false`), Vue 3, TypeScript, Tailwind CSS v4, shadcn-vue (module `shadcn-nuxt`) |
 
-- `frontend/` n'existe pas encore : le créer avec Nuxt 4, puis suivre le skill `edgvm-interface-nuxt`.
+- En production, l'interface est construite en fichiers statiques (`scripts/construire.sh`) et copiée dans `backend/public` ; Laravel la sert pour toute adresse qui n'est pas l'API (`InterfaceController`). Interface et API partagent donc le même domaine : la session Sanctum fonctionne sans CORS.
+- En local, Nuxt redirige `/api` et `/sanctum` vers Laravel (`nitro.devProxy` dans `nuxt.config.ts`).
 - Ne pas ajouter ni changer de dépendance (Composer ou npm) sans l'accord de l'utilisateur. Les dépendances déjà prévues sont listées dans les skills.
 - Pas de SSR : la plateforme est privée (pas de SEO), et l'interface doit pouvoir être servie en fichiers statiques sur un hébergement mutualisé cPanel (o2switch), comme le site vitrine.
 
@@ -40,18 +41,21 @@ Chaque accès passe par une **Policy** Laravel. Un doctorant ne doit jamais pouv
 # API
 cd backend
 composer install && cp .env.example .env && php artisan key:generate
-php artisan migrate --seed
+php artisan migrate --seed            # en local : comptes admin@, membre@, doctorant@edgvm.test (mot de passe « password »)
 php artisan serve                     # http://localhost:8000
+php artisan plateforme:creer-admin adresse@exemple.mg   # premier compte d'administration en production
 php artisan test --compact            # tous les tests
 php artisan test --compact --filter=NomDuTest
 vendor/bin/pint --dirty               # formatage, avant chaque livraison
 
-# Interface (une fois créée)
+# Interface
 cd frontend
 npm install
-npm run dev                           # http://localhost:3000
-npm run generate                      # build statique (.output/public)
+npm run dev                           # http://localhost:3000 (API_LOCALE=http://localhost:8001 si l'API n'est pas sur 8000)
 npx nuxi typecheck
+
+# Construction pour la production (interface copiée dans backend/public)
+scripts/construire.sh
 ```
 
 ## Règles de travail

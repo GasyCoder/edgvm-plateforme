@@ -7,7 +7,7 @@ description: Créer ou modifier l'interface Nuxt 4 de la plateforme EDGVM (front
 
 Lire d'abord `AGENTS.md` (rôles, conventions d'interface).
 
-## Création du projet (une seule fois)
+## Création du projet (déjà faite, pour mémoire)
 
 1. Créer le projet : `npm create nuxt@latest frontend`, avec le modèle minimal, TypeScript et npm.
 2. Régler `nuxt.config.ts` :
