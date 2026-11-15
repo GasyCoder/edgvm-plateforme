@@ -1,71 +1,41 @@
 ---
 name: edgvm-actes-administratifs
-description: Générer les actes administratifs de l'EDGVM en PDF (attestation d'inscription, de réinscription, autres attestations) avec numérotation unique, QR code et page publique de vérification ; annuler un acte. À utiliser pour tout modèle de document officiel ou toute règle de délivrance.
+description: Module des actes administratifs de l'EDGVM (attestation d'inscription, admission, fiche d'évaluation et autres) : modèles modifiables avec variables, délivrance unitaire ou en lot, PDF dompdf avec QR code, vérification publique, annulation. À utiliser pour toute modification d'un modèle, d'une variable, de la mise en page PDF ou d'une règle de délivrance.
 ---
 
-# Actes administratifs (backend/)
+# Actes administratifs
 
-## Délivrance d'un acte
+Module en place : à faire évoluer, pas à recréer.
 
-1. **Contrôles avant délivrance**, dans une action `app/Actions/DelivrerActe.php` :
-   - l'inscription existe pour l'année demandée et n'est pas annulée ;
-   - si c'est une **dérogation**, la décision est enregistrée ; sinon, refus avec un message clair ;
-   - les règles de paiement exigées pour ce type d'acte sont respectées. Par exemple, une attestation d'inscription peut exiger le premier versement. Ces règles sont un réglage, pas une constante dans le code.
-2. **Numéro unique** au format `EDGVM/{année}/{séquence sur 6 chiffres}`.
-   - Il est attribué dans une transaction, avec un verrou sur le compteur de l'année.
-   - Ne jamais réutiliser un numéro.
-3. **Code de vérification** : chaîne aléatoire non devinable (`Str::random(32)`), stockée dans l'acte.
-4. **PDF** :
-   - généré depuis une vue Blade, `resources/views/actes/{type}.blade.php` ;
-   - enregistré dans `storage/app/private/actes/{année}/`, donc **jamais dans `public`** ;
-   - téléchargé par une route protégée par la policy (le doctorant concerné ou le `super_admin`).
-5. **QR code** imprimé sur le PDF. Il pointe vers la page publique `GET /verifier/{code}`.
+## Où se trouve quoi
 
-## Bibliothèques
+- **Modèles** (`modeles_actes`, `App\Models\ModeleActe`) : titre, texte HTML avec variables `{{nom_complet}}`, champs complémentaires (`champs` json : cle, libelle, type `texte|texte_long|date|heure|choix`, options, obligatoire), options `exige_inscription`, `inclure_signature`, `actif`. Modifiables dans l'interface (`/actes/modeles`, éditeur Tiptap). Modèles de départ : `ModelesActesSeeder` (attestation d'inscription, admission, fiche d'évaluation), créés seulement s'ils n'existent pas.
+- **Variables** : `App\Support\GabaritActe::VARIABLES` (liste affichée dans l'éditeur). Pour en ajouter une : la déclarer là avec libellé et exemple, puis la calculer dans `GabaritActe::valeurs()`. Un champ complémentaire ne peut pas porter le nom d'une variable du système.
+- **Délivrance** : `App\Actions\DelivrerActe`. Contrôles : modèle actif ; si `exige_inscription`, inscription validée pour l'année et dérogation décidée. Sinon `ActeImpossible` (message montré tel quel). Numéro `EDGVM/{année}/{000001}` dans une transaction (`Acte::prochainNumero`), code de vérification aléatoire.
+- **Texte figé** : l'acte stocke son titre, son texte rempli et nettoyé (`NettoyeurHtml`), et un instantané du signataire et des images (`ReglagesActes::instantane`). Modifier un modèle ou les réglages ne change jamais un acte déjà délivré. Les images remplacées ne sont pas effacées.
+- **PDF** : `App\Support\GenerateurPdfActes` + vue `resources/views/actes/document.blade.php` (dompdf, A4, une page par acte, mise en page resserrée automatique pour les textes longs, QR code chillerlan). Rien n'est stocké : le PDF est produit à la demande à partir de l'acte.
+- **Réglages** : `reglages` (clé/valeur) via `ReglagesActes` : signataire, fonction, titre, ville, logos gauche et droite, signature et cachet (disque privé `local`, dossier `reglages/`). Logos par défaut dans `resources/images/actes/`.
+- **Routes** : API `/api/modeles-actes` (+ `/disponibles`, `/apercu`), `/api/actes` (+ `/lot`, `/{acte}/annuler`), `/api/reglages-actes`. Téléchargements par lien (session web, `routes/web.php`) : `/telechargements/actes/{id}.pdf`, `/telechargements/actes.pdf?ids[]=`. Vérification publique : `/verifier/{code}` (vue `actes/verification.blade.php`).
+- **Droits** (`ActePolicy`, `ModeleActePolicy`) : l'administration délivre, annule et gère les modèles ; un membre d'équipe consulte les actes de ses doctorants ; un doctorant télécharge ses actes valides.
 
-- **PDF** : `barryvdh/laravel-dompdf`. C'est du PHP pur, qui fonctionne sur l'hébergement mutualisé, sans Chrome.
-  - Pas de Browsershot ni de Puppeteer.
-- **QR code** : une bibliothèque PHP pure qui produit du SVG ou du PNG, par exemple `chillerlan/php-qrcode`.
-- Ces deux dépendances ne sont pas encore installées. Les proposer à l'utilisateur et attendre son accord.
+## Règles
 
-## Modèle du document
-
-- En-tête :
-  - République de Madagascar ;
-  - Université de Mahajanga ;
-  - École Doctorale Génie du Vivant et Modélisation ;
-  - logo.
-- Corps : texte officiel avec l'identité du doctorant, le matricule, l'année universitaire, le niveau (D1, D2, D3, ou « en dérogation »), l'équipe d'accueil et le sujet de thèse.
-- Pied :
-  - lieu et date ;
-  - fonction et nom du signataire, tirés des réglages et non codés en dur ;
-  - QR code et numéro.
-- Mise en page :
-  - CSS simple compatible dompdf : pas de flex ni de grid, utiliser des tableaux ;
-  - polices embarquées ;
-  - format A4.
-- Les textes officiels (formules, titre du signataire) sont validés par l'École avant mise en production.
-
-## Annulation
-
-- Un acte délivré **ne se modifie jamais**.
-- Pour corriger une erreur :
-  1. renseigner `annule_le` et `motif_annulation` ;
-  2. délivrer un nouvel acte, avec un nouveau numéro.
-- La page `/verifier/{code}` affiche :
-  - « Acte valide », avec le type, le numéro, le nom du doctorant et la date ;
-  - ou « Acte annulé le ... » ;
-  - et jamais d'autres données personnelles.
+- Un acte délivré ne se modifie pas et ne se supprime pas : on l'annule (`annule_le`, `motif_annulation`, `annule_par`) et on en délivre un nouveau. Le PDF d'un acte annulé porte un filigrane « ANNULÉ ».
+- La page `/verifier/{code}` n'affiche que le type, le numéro, le nom et la date : jamais d'autre donnée personnelle.
+- Le HTML des modèles passe toujours par `NettoyeurHtml` (paragraphes, gras, italique, souligné, listes, alignement). Pas d'image ni de lien dans le texte.
+- CSS de la vue PDF compatible dompdf : tableaux plutôt que flex ou grid, polices Times et Helvetica.
+- Textes officiels (formules, signataire) : validés par l'École avant toute mise en production.
 
 ## Tests
 
-- Délivrance réussie : numéro au bon format et fichier créé (`Storage::fake('local')`).
-- Deux délivrances simultanées : numéros différents et consécutifs.
-- Refus :
-  - dérogation sans décision ;
-  - inscription d'une autre année ;
-  - doctorant qui télécharge l'acte d'un autre (`assertForbidden`).
-- Page de vérification :
-  - acte valide ;
-  - acte annulé ;
-  - code inconnu (`assertNotFound`).
+`tests/Feature/ActesTest.php` et `ReglagesActesTest.php` couvrent :
+- la délivrance et la numérotation ;
+- les refus (sans inscription, inscription en attente, dérogation sans décision) ;
+- les champs obligatoires ;
+- le lot (avec les erreurs par doctorant) ;
+- les droits par rôle, l'annulation et la vérification publique ;
+- le nettoyage du HTML, les variables inconnues, l'aperçu ;
+- le texte figé après modification du modèle ;
+- les réglages et les images.
+
+Ajouter un test à chaque nouvelle règle.

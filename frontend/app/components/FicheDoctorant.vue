@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CalendarPlus, Mail, Pencil, Phone, Send, TriangleAlert } from '@lucide/vue'
+import { CalendarPlus, Mail, Pencil, Phone, Send, Stamp, TriangleAlert } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,6 +18,7 @@ const { data: doctorant, status, refresh, error } = useAsyncData(
   { lazy: true },
 )
 
+const actes = ref<{ ouvrir: () => void } | null>(null)
 const dialogueInscription = ref(false)
 const inscriptionModifiee = ref<Inscription | null>(null)
 const envoiLien = ref(false)
@@ -95,6 +96,7 @@ useHead(() => ({ title: doctorant.value ? doctorant.value.nom_complet : 'Dossier
         <Button variant="outline" as-child>
           <NuxtLink :to="`/doctorants/${doctorant.id}/modifier`"><Pencil /> Modifier</NuxtLink>
         </Button>
+        <Button variant="outline" @click="actes?.ouvrir()"><Stamp /> Délivrer un acte</Button>
         <Button @click="ouvrirInscription()"><CalendarPlus /> Inscrire</Button>
       </div>
     </div>
@@ -119,6 +121,20 @@ useHead(() => ({ title: doctorant.value ? doctorant.value.nom_complet : 'Dossier
             <div>
               <p class="text-muted-foreground">Sujet</p>
               <p class="font-medium">{{ doctorant.sujet_these || 'Non renseigné' }}</p>
+            </div>
+            <div class="grid gap-3 sm:grid-cols-3">
+              <div>
+                <p class="text-muted-foreground">Directeur de thèse</p>
+                <p class="font-medium">{{ doctorant.directeur_these || 'Non renseigné' }}</p>
+              </div>
+              <div v-if="doctorant.co_directeur">
+                <p class="text-muted-foreground">Co-directeur</p>
+                <p class="font-medium">{{ doctorant.co_directeur }}</p>
+              </div>
+              <div v-if="doctorant.co_encadrant">
+                <p class="text-muted-foreground">Co-encadrant</p>
+                <p class="font-medium">{{ doctorant.co_encadrant }}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -152,6 +168,8 @@ useHead(() => ({ title: doctorant.value ? doctorant.value.nom_complet : 'Dossier
       </div>
 
       <div class="grid content-start gap-6">
+        <ActesDoctorant ref="actes" :doctorant="doctorant" />
+
         <Card>
           <CardHeader><CardTitle>Contact</CardTitle></CardHeader>
           <CardContent class="grid gap-3 text-sm">

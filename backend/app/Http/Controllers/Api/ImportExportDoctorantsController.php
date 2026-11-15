@@ -76,10 +76,10 @@ class ImportExportDoctorantsController extends Controller
 
         return FichierCsv::telecharger('modele-import-doctorants.csv', [
             'Nom', 'Prénoms', 'Genre', 'Date de naissance', 'Lieu de naissance', 'Nationalité', 'CIN ou passeport', 'Adresse',
-            'E-mail', 'Téléphone', 'Équipe', 'Sujet de thèse', 'Matricule', 'Niveau', 'Droits (Ar)',
+            'E-mail', 'Téléphone', 'Équipe', 'Sujet de thèse', 'Directeur de thèse', 'Co-directeur', 'Matricule', 'Niveau', 'Droits (Ar)',
         ], [[
             'RAKOTO', 'Jean Marie', 'M', '25/03/1990', 'Mahajanga', 'Malagasy', '401011012345', 'Lot II A 12 Mahajanga',
-            'jean.rakoto@exemple.mg', '034 12 345 67', 'EAD 1', 'Sujet de la thèse', '', 'D1', '1500000',
+            'jean.rakoto@exemple.mg', '034 12 345 67', 'EAD 1', 'Sujet de la thèse', 'Pr RABE Hery', '', '', 'D1', '1500000',
         ]]);
     }
 

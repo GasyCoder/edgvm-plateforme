@@ -28,7 +28,7 @@ const { equipes, annees, anneeCourante } = useReferentiels()
 const vide = () => ({
   nom: '', prenoms: '', genre: null as string | null, date_naissance: '', lieu_naissance: '', nationalite: 'Malagasy',
   numero_piece: '', adresse: '', email: '', telephone: '', envoyer_invitation: true,
-  equipe_accueil_id: null as number | null, sujet_these: '',
+  equipe_accueil_id: null as number | null, sujet_these: '', directeur_these: '', co_directeur: '', co_encadrant: '',
   inscrire: true, inscription: { annee_universitaire_id: null as number | null, niveau: 'D1', montant_du: 0 },
   matricule: '', visible_annuaire: false, observation: '',
 })
@@ -54,7 +54,7 @@ const corps = () => {
 const etapeDuChamp = (champ: string) => {
   const racine = champ.split('.')[0]!
   if (['email', 'telephone', 'envoyer_invitation'].includes(racine)) return 1
-  if (['equipe_accueil_id', 'sujet_these'].includes(racine)) return 2
+  if (['equipe_accueil_id', 'sujet_these', 'directeur_these', 'co_directeur', 'co_encadrant'].includes(racine)) return 2
   if (['inscription', 'matricule', 'visible_annuaire', 'observation'].includes(racine)) return 3
   return 0
 }
@@ -137,6 +137,9 @@ const recapitulatif = computed(() => [
   { etape: 2, titre: 'Thèse', lignes: [
     ["Équipe d'accueil", equipeChoisie.value ? `${equipeChoisie.value.sigle}, ${equipeChoisie.value.nom}` : ''],
     ['Sujet', formulaire.sujet_these],
+    ['Directeur de thèse', formulaire.directeur_these],
+    ['Co-directeur', formulaire.co_directeur],
+    ['Co-encadrant', formulaire.co_encadrant],
   ] },
   { etape: 3, titre: 'Inscription et suivi', lignes: [
     ['Inscription', formulaire.inscrire ? `${anneeChoisie.value?.libelle ?? ''}, ${formulaire.inscription.niveau}, ${formaterMontant(formulaire.inscription.montant_du)}` : 'Pas pour le moment'],
@@ -262,6 +265,17 @@ const recapitulatif = computed(() => [
             <ChampFormulaire libelle="Sujet de thèse" pour="sujet" :erreur="erreurs.sujet_these" aide="Peut être précisé plus tard.">
               <Textarea id="sujet" v-model="formulaire.sujet_these" rows="3" />
             </ChampFormulaire>
+            <div class="grid gap-4 sm:grid-cols-3">
+              <ChampFormulaire libelle="Directeur de thèse" pour="directeur" :erreur="erreurs.directeur_these" aide="Avec le titre : Pr RABE Hery.">
+                <Input id="directeur" v-model="formulaire.directeur_these" />
+              </ChampFormulaire>
+              <ChampFormulaire libelle="Co-directeur" pour="codirecteur" :erreur="erreurs.co_directeur">
+                <Input id="codirecteur" v-model="formulaire.co_directeur" />
+              </ChampFormulaire>
+              <ChampFormulaire libelle="Co-encadrant" pour="coencadrant" :erreur="erreurs.co_encadrant">
+                <Input id="coencadrant" v-model="formulaire.co_encadrant" />
+              </ChampFormulaire>
+            </div>
           </div>
 
           <!-- 4. Inscription et suivi -->

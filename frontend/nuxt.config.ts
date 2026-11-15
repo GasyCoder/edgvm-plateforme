@@ -38,6 +38,7 @@ export default defineNuxtConfig({
       '/api': { target: `${apiLocale}/api`, changeOrigin: false },
       '/sanctum': { target: `${apiLocale}/sanctum`, changeOrigin: false },
       '/telechargements': { target: `${apiLocale}/telechargements`, changeOrigin: false },
+      '/verifier': { target: `${apiLocale}/verifier`, changeOrigin: false },
     },
   },
 })

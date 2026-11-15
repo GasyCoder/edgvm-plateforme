@@ -36,6 +36,9 @@ const formulaire = reactive({
   matricule: d?.matricule ?? '',
   equipe_accueil_id: d?.equipe?.id ?? null as number | null,
   sujet_these: d?.sujet_these ?? '',
+  directeur_these: d?.directeur_these ?? '',
+  co_directeur: d?.co_directeur ?? '',
+  co_encadrant: d?.co_encadrant ?? '',
   statut: d?.statut ?? 'actif',
   visible_annuaire: d?.visible_annuaire ?? false,
   observation: d?.observation ?? '',
@@ -156,6 +159,15 @@ async function enregistrer() {
         </ChampFormulaire>
         <ChampFormulaire libelle="Sujet de thèse" pour="sujet" :erreur="erreurs.sujet_these" class="sm:col-span-2">
           <Textarea id="sujet" v-model="formulaire.sujet_these" rows="2" />
+        </ChampFormulaire>
+        <ChampFormulaire libelle="Directeur de thèse" pour="directeur" :erreur="erreurs.directeur_these" aide="Avec le titre : Pr RABE Hery.">
+          <Input id="directeur" v-model="formulaire.directeur_these" />
+        </ChampFormulaire>
+        <ChampFormulaire libelle="Co-directeur" pour="codirecteur" :erreur="erreurs.co_directeur">
+          <Input id="codirecteur" v-model="formulaire.co_directeur" />
+        </ChampFormulaire>
+        <ChampFormulaire libelle="Co-encadrant" pour="coencadrant" :erreur="erreurs.co_encadrant">
+          <Input id="coencadrant" v-model="formulaire.co_encadrant" />
         </ChampFormulaire>
       </CardContent>
     </Card>

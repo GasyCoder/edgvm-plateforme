@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CalendarPlus, ChevronLeft, ChevronRight, Copy, Download, Eye, FileDown, FileSpreadsheet, MoreHorizontal, Pencil, Plus, Search, Send, Upload, Users, X } from '@lucide/vue'
+import { CalendarPlus, ChevronLeft, ChevronRight, Copy, Download, Eye, FileDown, FileSpreadsheet, MoreHorizontal, Pencil, Plus, Search, Send, Stamp, Upload, Users, X } from '@lucide/vue'
 import { useDebounceFn } from '@vueuse/core'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
@@ -81,6 +81,7 @@ function exporter(seulementSelection = false) {
 }
 
 const importOuvert = ref(false)
+const delivrance = ref(false)
 
 async function renvoyerLien(doctorant: Doctorant) {
   if (!doctorant.compte) return
@@ -135,6 +136,7 @@ const td = 'border-b border-gray-200 px-1.5 py-3.5 sm:px-2 first:ps-4 last:pe-3 
       <div class="flex flex-col gap-3 p-4 sm:p-5 lg:flex-row lg:items-center">
         <div v-if="selection.length" class="flex flex-1 flex-wrap items-center gap-3">
           <span class="text-sm font-semibold text-slate-700">{{ selection.length }} sélectionné{{ selection.length > 1 ? 's' : '' }}</span>
+          <Button v-if="estSuperAdmin" size="sm" @click="delivrance = true"><Stamp /> Délivrer un acte</Button>
           <Button size="sm" variant="outline" @click="exporter(true)"><FileSpreadsheet /> Exporter la sélection</Button>
           <Button size="sm" variant="ghost" @click="selection = []"><X /> Désélectionner</Button>
         </div>
@@ -289,5 +291,6 @@ const td = 'border-b border-gray-200 px-1.5 py-3.5 sm:px-2 first:ps-4 last:pe-3 
     </div>
 
     <DialogueImport v-if="estSuperAdmin" v-model:open="importOuvert" @importe="refresh()" />
+    <DialogueDelivrance v-if="estSuperAdmin" v-model:open="delivrance" :doctorants="lignes.filter(d => selection.includes(d.id)).map(d => ({ id: d.id, nom_complet: d.nom_complet }))" />
   </div>
 </template>

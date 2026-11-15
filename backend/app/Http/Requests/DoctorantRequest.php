@@ -56,7 +56,7 @@ class DoctorantRequest extends FormRequest
     public const ETAPES = [
         'identite' => ['nom', 'prenoms', 'genre', 'date_naissance', 'lieu_naissance', 'nationalite', 'numero_piece', 'adresse'],
         'contact' => ['email', 'telephone', 'envoyer_invitation'],
-        'these' => ['equipe_accueil_id', 'sujet_these'],
+        'these' => ['equipe_accueil_id', 'sujet_these', 'directeur_these', 'co_directeur', 'co_encadrant'],
         'inscription' => ['inscription', 'matricule', 'visible_annuaire', 'observation'],
     ];
 
@@ -88,6 +88,9 @@ class DoctorantRequest extends FormRequest
             'matricule' => ['nullable', 'string', 'max:30', Rule::unique('doctorants', 'matricule')->ignore($doctorant?->id)],
             'equipe_accueil_id' => ['required', 'integer', Rule::exists('equipes_accueil', 'id')],
             'sujet_these' => ['nullable', 'string', 'max:500'],
+            'directeur_these' => ['nullable', 'string', 'max:190'],
+            'co_directeur' => ['nullable', 'string', 'max:190'],
+            'co_encadrant' => ['nullable', 'string', 'max:190'],
             'statut' => [$creation ? 'nullable' : 'required', Rule::enum(StatutDoctorant::class)],
             'visible_annuaire' => ['boolean'],
             'observation' => ['nullable', 'string', 'max:2000'],
@@ -145,6 +148,9 @@ class DoctorantRequest extends FormRequest
             'telephone' => 'téléphone',
             'equipe_accueil_id' => "équipe d'accueil",
             'sujet_these' => 'sujet de thèse',
+            'directeur_these' => 'directeur de thèse',
+            'co_directeur' => 'co-directeur',
+            'co_encadrant' => 'co-encadrant',
             'inscription.annee_universitaire_id' => 'année universitaire',
             'inscription.niveau' => 'niveau',
             'inscription.montant_du' => 'montant des droits',

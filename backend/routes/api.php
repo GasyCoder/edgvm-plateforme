@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\ActeController;
 use App\Http\Controllers\Api\AnneeUniversitaireController;
 use App\Http\Controllers\Api\AuthentificationController;
 use App\Http\Controllers\Api\CompteController;
@@ -7,7 +8,9 @@ use App\Http\Controllers\Api\DoctorantController;
 use App\Http\Controllers\Api\EquipeAccueilController;
 use App\Http\Controllers\Api\ImportExportDoctorantsController;
 use App\Http\Controllers\Api\InscriptionController;
+use App\Http\Controllers\Api\ModeleActeController;
 use App\Http\Controllers\Api\PieceJointeController;
+use App\Http\Controllers\Api\ReglagesActesController;
 use App\Http\Controllers\Api\TableauDeBordController;
 use Illuminate\Support\Facades\Route;
 
@@ -39,6 +42,17 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::apiResource('equipes', EquipeAccueilController::class)->except('show')
         ->parameters(['equipes' => 'equipe']);
     Route::apiResource('annees', AnneeUniversitaireController::class)->only(['index', 'store', 'update']);
+
+    // Actes administratifs
+    Route::get('/modeles-actes/disponibles', [ModeleActeController::class, 'disponibles'])->name('modeles-actes.disponibles');
+    Route::post('/modeles-actes/apercu', [ModeleActeController::class, 'apercu'])->name('modeles-actes.apercu');
+    Route::apiResource('modeles-actes', ModeleActeController::class)->parameters(['modeles-actes' => 'modele']);
+    Route::get('/reglages-actes', [ReglagesActesController::class, 'show'])->name('reglages-actes.show');
+    Route::post('/reglages-actes', [ReglagesActesController::class, 'update'])->name('reglages-actes.update');
+    Route::get('/actes', [ActeController::class, 'index'])->name('actes.index');
+    Route::post('/actes', [ActeController::class, 'store'])->name('actes.store');
+    Route::post('/actes/lot', [ActeController::class, 'lot'])->name('actes.lot');
+    Route::post('/actes/{acte}/annuler', [ActeController::class, 'annuler'])->name('actes.annuler');
 
     Route::apiResource('comptes', CompteController::class)->only(['index', 'store', 'update']);
     Route::post('/comptes/{compte}/lien-acces', [CompteController::class, 'lienAcces'])->name('comptes.lien-acces');

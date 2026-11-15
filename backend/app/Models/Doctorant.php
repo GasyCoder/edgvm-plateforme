@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'user_id', 'matricule', 'nom', 'prenoms', 'genre', 'date_naissance', 'lieu_naissance', 'nationalite',
-    'numero_piece', 'adresse', 'equipe_accueil_id', 'sujet_these', 'statut', 'visible_annuaire', 'observation',
+    'numero_piece', 'adresse', 'equipe_accueil_id', 'sujet_these', 'directeur_these', 'co_directeur', 'co_encadrant', 'statut', 'visible_annuaire', 'observation',
 ])]
 class Doctorant extends Model
 {

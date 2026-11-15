@@ -80,6 +80,9 @@ export interface Doctorant {
   observation?: string | null
   equipe?: Equipe
   sujet_these: string | null
+  directeur_these?: string | null
+  co_directeur?: string | null
+  co_encadrant?: string | null
   statut: 'actif' | 'suspendu' | 'abandon' | 'diplome'
   statut_libelle: string
   visible_annuaire: boolean
@@ -113,4 +116,56 @@ export interface PieceJointe {
   ajoute_par?: string | null
   ajoute_le: string | null
   peut_supprimer: boolean
+}
+
+export interface ChampModele {
+  cle: string
+  libelle: string
+  type: 'texte' | 'texte_long' | 'date' | 'heure' | 'choix'
+  options?: string[]
+  obligatoire?: boolean
+}
+
+export interface ModeleActe {
+  id: number
+  code: string
+  nom: string
+  titre: string
+  corps: string
+  champs: ChampModele[]
+  exige_inscription: boolean
+  inclure_signature: boolean
+  actif: boolean
+  actes_count?: number
+  modifie_le: string | null
+}
+
+export interface VariableActe {
+  cle: string
+  libelle: string
+  exemple: string
+}
+
+export interface Acte {
+  id: number
+  numero: string
+  titre: string
+  modele?: { id: number, nom: string }
+  doctorant?: { id: string, nom_complet: string, matricule: string }
+  annee?: string | null
+  delivre_le: string
+  delivre_par?: string | null
+  annule_le: string | null
+  motif_annulation: string | null
+  url_pdf: string
+  peut_annuler: boolean
+}
+
+export interface ReglagesActes {
+  signataire_nom: string
+  signataire_fonction: string
+  signataire_titre: string
+  ville: string
+  afficher_nom_signataire: boolean
+  images: Record<'logo_gauche' | 'logo_droite' | 'signature', { personnalisee: boolean, existe: boolean }>
 }

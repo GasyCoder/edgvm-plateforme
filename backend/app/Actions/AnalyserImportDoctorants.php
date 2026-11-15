@@ -32,6 +32,9 @@ class AnalyserImportDoctorants
         'telephone' => 'telephone', 'tel' => 'telephone', 'contact' => 'telephone',
         'equipe' => 'equipe', 'equipe_d_accueil' => 'equipe', 'ead' => 'equipe',
         'sujet_de_these' => 'sujet_these', 'sujet' => 'sujet_these', 'sujet_these' => 'sujet_these',
+        'directeur_de_these' => 'directeur_these', 'directeur' => 'directeur_these', 'directeur_these' => 'directeur_these',
+        'co_directeur' => 'co_directeur', 'codirecteur' => 'co_directeur',
+        'co_encadrant' => 'co_encadrant', 'coencadrant' => 'co_encadrant',
         'matricule' => 'matricule',
         'niveau' => 'niveau',
         'droits_ar' => 'montant_du', 'droits' => 'montant_du', 'montant' => 'montant_du', 'droits_d_inscription' => 'montant_du',
@@ -111,7 +114,7 @@ class AnalyserImportDoctorants
     {
         $erreurs = [];
         $signales = [];
-        $donnees = collect($valeurs)->only(['nom', 'prenoms', 'lieu_naissance', 'nationalite', 'numero_piece', 'adresse', 'sujet_these', 'matricule'])->all();
+        $donnees = collect($valeurs)->only(['nom', 'prenoms', 'lieu_naissance', 'nationalite', 'numero_piece', 'adresse', 'sujet_these', 'directeur_these', 'co_directeur', 'co_encadrant', 'matricule'])->all();
         $donnees['email'] = isset($valeurs['email']) ? mb_strtolower($valeurs['email']) : null;
         $donnees['telephone'] = Telephone::normaliser($valeurs['telephone'] ?? null);
 

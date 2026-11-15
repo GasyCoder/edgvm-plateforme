@@ -1,4 +1,4 @@
-import { CalendarRange, CircleUserRound, FolderOpen, LayoutDashboard, Network, UserCog, Users } from '@lucide/vue'
+import { CalendarRange, CircleUserRound, FilePen, FileStack, FolderOpen, LayoutDashboard, Network, UserCog, Users } from '@lucide/vue'
 import type { Component } from 'vue'
 import type { Role } from '~/types'
 
@@ -18,7 +18,10 @@ const LIENS: LienNavigation[] = [
   { libelle: 'Mon dossier', court: 'Dossier', vers: '/', icone: FolderOpen, roles: ['doctorant'], section: 'Mon espace', enBas: true },
   { libelle: 'Doctorants', vers: '/doctorants', icone: Users, roles: ['super_admin', 'membre_ead'], section: 'Gestion', enBas: true },
   { libelle: "Équipes d'accueil", court: 'Équipes', vers: '/equipes', icone: Network, roles: ['super_admin', 'membre_ead'], section: 'Gestion', enBas: true },
-  { libelle: 'Comptes', vers: '/comptes', icone: UserCog, roles: ['super_admin'], section: 'Administration', enBas: true },
+  { libelle: 'Actes délivrés', court: 'Actes', vers: '/actes', icone: FileStack, roles: ['super_admin', 'membre_ead'], section: 'Actes administratifs', enBas: true },
+  { libelle: "Modèles d'actes", court: 'Modèles', vers: '/actes/modeles', icone: FilePen, roles: ['super_admin'], section: 'Actes administratifs' },
+  { libelle: 'Mes actes', court: 'Actes', vers: '/actes', icone: FileStack, roles: ['doctorant'], section: 'Mon espace', enBas: true },
+  { libelle: 'Comptes', vers: '/comptes', icone: UserCog, roles: ['super_admin'], section: 'Administration' },
   { libelle: 'Années universitaires', court: 'Années', vers: '/annees', icone: CalendarRange, roles: ['super_admin'], section: 'Administration' },
   { libelle: 'Mon compte', court: 'Compte', vers: '/mon-compte', icone: CircleUserRound, roles: ['super_admin', 'membre_ead', 'doctorant'], section: 'Mon espace' },
 ]
@@ -40,10 +43,15 @@ export function useNavigation() {
   })
   const liensDuBas = computed(() => {
     const enBas = liens.value.filter(lien => lien.enBas)
-    return enBas.length >= 2 ? enBas.slice(0, 4) : liens.value.slice(0, 4)
+    return enBas.length >= 3 ? enBas.slice(0, 4) : [...enBas, ...liens.value.filter(l => !l.enBas)].slice(0, 4)
   })
 
-  const estActif = (vers: string) => vers === '/' ? route.path === '/' : route.path.startsWith(vers)
+  /* Le lien le plus précis gagne : « /actes/modeles » n'allume pas aussi « /actes ». */
+  const estActif = (vers: string) => {
+    if (vers === '/') return route.path === '/'
+    const correspondants = liens.value.map(l => l.vers).filter(v => v !== '/' && (route.path === v || route.path.startsWith(`${v}/`)))
+    return correspondants.length > 0 && vers === correspondants.sort((a, b) => b.length - a.length)[0]
+  }
 
   return { liens, sections, liensDuBas, estActif }
 }

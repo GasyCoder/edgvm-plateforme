@@ -16,7 +16,7 @@ class InterfaceController extends Controller
 
     public function __invoke(Request $request): Response|JsonResponse
     {
-        if ($request->is('api/*', 'sanctum/*', 'telechargements/*')) {
+        if ($request->is('api/*', 'sanctum/*', 'telechargements/*', 'verifier/*')) {
             return response()->json(['message' => 'Adresse introuvable.'], 404);
         }
 
