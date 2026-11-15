@@ -71,6 +71,9 @@ async function enregistrer() {
   }
 }
 
+const th = 'border-y border-gray-300 px-2 py-2.5 text-start text-sm font-normal text-slate-400 first:ps-5 last:pe-5 sm:first:ps-6 sm:last:pe-6'
+const td = 'border-b border-gray-200 px-2 py-3.5 first:ps-5 last:pe-5 sm:first:ps-6 sm:last:pe-6'
+
 async function envoyerLien(compte: Compte) {
   try {
     const reponse = await api<{ message: string }>(`/api/comptes/${compte.id}/lien-acces`, { method: 'POST' })
@@ -103,29 +106,56 @@ async function envoyerLien(compte: Compte) {
       </div>
     </div>
 
-    <SqueletteListe v-if="status === 'pending' && !data" />
-    <EtatVide v-else-if="data && !data.data.length" titre="Aucun compte" />
-    <template v-else-if="data">
-      <ul class="overflow-hidden rounded-lg border bg-white">
-        <li v-for="compte in data.data" :key="compte.id" class="flex flex-wrap items-center gap-3 border-b p-4 last:border-b-0">
-          <span class="flex size-9 flex-none items-center justify-center rounded-full bg-brand-50 text-xs font-semibold text-brand-800">{{ initiales(compte.name) }}</span>
-          <div class="min-w-0 flex-1">
-            <p class="truncate font-medium">{{ compte.name }} <span v-if="!compte.actif" class="ml-1 rounded bg-muted px-1.5 py-0.5 text-xs font-normal text-muted-foreground">Désactivé</span></p>
-            <p class="truncate text-xs text-muted-foreground">{{ compte.email }}</p>
-          </div>
-          <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-            <span class="rounded-md bg-muted px-2 py-0.5 text-xs">{{ compte.role_libelle }}</span>
-            <span v-for="equipe in compte.equipes" :key="equipe.id" class="rounded-md bg-brand-50 px-2 py-0.5 text-xs text-brand-800">{{ equipe.sigle }}</span>
-            <span class="text-xs text-muted-foreground">{{ compte.derniere_connexion_le ? `Vu le ${formaterDateHeure(compte.derniere_connexion_le)}` : 'Jamais connecté' }}</span>
-            <div class="ml-auto flex">
-              <Button variant="ghost" size="icon-sm" :aria-label="`Envoyer un lien d'accès à ${compte.name}`" title="Envoyer un lien d'accès" @click="envoyerLien(compte)"><Send /></Button>
-              <Button variant="ghost" size="icon-sm" :aria-label="`Modifier ${compte.name}`" @click="ouvrir(compte)"><Pencil /></Button>
-            </div>
-          </div>
-        </li>
-      </ul>
-      <PaginationSimple :meta="data.meta" @page="numero => page = numero" />
-    </template>
+    <div class="-mx-3 border-y border-gray-300 bg-white sm:mx-0 sm:rounded-md sm:border-x">
+      <div v-if="status === 'pending' && !data" class="p-5"><SqueletteListe :lignes="5" class="border-none" /></div>
+      <div v-else-if="data && !data.data.length" class="p-6"><EtatVide titre="Aucun compte" class="border-none" /></div>
+      <div v-else-if="data" class="overflow-x-auto">
+        <table class="w-full border-collapse">
+          <thead>
+            <tr>
+              <th :class="th">Utilisateur</th>
+              <th :class="th" class="hidden md:table-cell">Rôle</th>
+              <th :class="th" class="hidden lg:table-cell">Équipes</th>
+              <th :class="th" class="hidden sm:table-cell">Dernière connexion</th>
+              <th :class="th" class="hidden md:table-cell">Statut</th>
+              <th :class="th"><span class="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="compte in data.data" :key="compte.id" class="group transition-colors hover:bg-gray-50">
+              <td :class="td">
+                <div class="flex min-w-0 items-center gap-3">
+                  <span class="flex size-10 flex-none items-center justify-center rounded-full text-sm font-semibold text-white" :class="couleurAvatar(compte.name)">{{ initiales(compte.name) }}</span>
+                  <span class="min-w-0">
+                    <span class="block max-w-[10rem] truncate text-sm font-semibold text-slate-700 sm:max-w-xs">{{ compte.name }}</span>
+                    <span class="block max-w-[10rem] truncate text-xs text-slate-400 sm:max-w-xs">{{ compte.email }}</span>
+                  </span>
+                </div>
+              </td>
+              <td :class="td" class="hidden text-sm text-slate-600 md:table-cell">{{ compte.role_libelle }}</td>
+              <td :class="td" class="hidden lg:table-cell">
+                <div class="flex flex-wrap gap-1">
+                  <span v-for="equipe in compte.equipes" :key="equipe.id" class="rounded bg-brand-50 px-1.5 py-0.5 text-xs font-medium text-brand-800">{{ equipe.sigle }}</span>
+                </div>
+              </td>
+              <td :class="td" class="hidden whitespace-nowrap text-sm text-slate-400 sm:table-cell">{{ compte.derniere_connexion_le ? formaterDateHeure(compte.derniere_connexion_le) : 'Jamais connecté' }}</td>
+              <td :class="td" class="hidden md:table-cell">
+                <span class="inline-flex items-center gap-1.5 text-sm font-medium" :class="compte.actif ? 'text-leaf-600' : 'text-slate-400'">
+                  <span class="size-1.5 rounded-full bg-current" />{{ compte.actif ? 'Actif' : 'Désactivé' }}
+                </span>
+              </td>
+              <td :class="td" class="text-end">
+                <div class="flex justify-end gap-1">
+                  <Button variant="ghost" size="icon-sm" class="text-slate-400 hover:text-brand-700" :aria-label="`Envoyer un lien d'accès à ${compte.name}`" title="Envoyer un lien d'accès" @click="envoyerLien(compte)"><Send /></Button>
+                  <Button variant="ghost" size="icon-sm" class="text-slate-400 hover:text-brand-700" :aria-label="`Modifier ${compte.name}`" @click="ouvrir(compte)"><Pencil /></Button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div v-if="data && data.meta.last_page > 1" class="px-4 pb-4 sm:px-6"><PaginationSimple :meta="data.meta" @page="numero => page = numero" /></div>
+    </div>
 
     <Dialog v-model:open="ouvert">
       <DialogContent class="max-h-[90dvh] overflow-y-auto sm:max-w-lg">

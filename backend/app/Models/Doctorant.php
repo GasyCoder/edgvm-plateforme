@@ -70,6 +70,14 @@ class Doctorant extends Model
     }
 
     /**
+     * @return HasMany<PieceJointe, $this>
+     */
+    public function piecesJointes(): HasMany
+    {
+        return $this->hasMany(PieceJointe::class);
+    }
+
+    /**
      * Inscription de l'année universitaire en cours.
      *
      * @return HasOne<Inscription, $this>

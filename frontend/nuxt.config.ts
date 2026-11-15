@@ -35,8 +35,9 @@ export default defineNuxtConfig({
   // En local, l'API Laravel (port 8000) est servie sous la même adresse que l'interface : cookies de session simples.
   nitro: {
     devProxy: {
-      '/api': { target: `${apiLocale}/api`, changeOrigin: true },
-      '/sanctum': { target: `${apiLocale}/sanctum`, changeOrigin: true },
+      '/api': { target: `${apiLocale}/api`, changeOrigin: false },
+      '/sanctum': { target: `${apiLocale}/sanctum`, changeOrigin: false },
+      '/telechargements': { target: `${apiLocale}/telechargements`, changeOrigin: false },
     },
   },
 })

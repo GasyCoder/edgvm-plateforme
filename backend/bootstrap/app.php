@@ -15,6 +15,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // L'interface Nuxt s'authentifie par cookie de session (Sanctum SPA).
         $middleware->statefulApi();
+        // Un lien de téléchargement ouvert sans session renvoie vers la page de connexion de l'interface.
+        $middleware->redirectGuestsTo(fn () => '/connexion');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

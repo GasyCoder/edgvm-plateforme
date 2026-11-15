@@ -155,3 +155,19 @@ it('uses the uuid in addresses, never the internal id', function (): void {
 
     $this->actingAs(superAdmin())->getJson('/api/doctorants/'.$doctorant->id)->assertNotFound();
 });
+
+it('checks one wizard step at a time without saving anything', function (): void {
+    User::factory()->create(['email' => 'pris@edgvm.mg']);
+    $admin = superAdmin();
+
+    $this->actingAs($admin)->postJson(route('doctorants.store'), ['etape' => 'identite', 'nom' => 'Rabe'])->assertNoContent();
+    $this->actingAs($admin)->postJson(route('doctorants.store'), ['etape' => 'identite', 'nom' => ''])
+        ->assertUnprocessable()->assertJsonValidationErrors('nom')->assertJsonMissingValidationErrors(['email', 'equipe_accueil_id']);
+    $this->actingAs($admin)->postJson(route('doctorants.store'), ['etape' => 'contact', 'email' => 'pris@edgvm.mg'])
+        ->assertUnprocessable()->assertJsonValidationErrors('email')->assertJsonMissingValidationErrors('nom');
+    $this->actingAs($admin)->postJson(route('doctorants.store'), ['etape' => 'inscription', 'inscription' => ['annee_universitaire_id' => 999, 'niveau' => 'D9', 'montant_du' => 0]])
+        ->assertUnprocessable()->assertJsonValidationErrors(['inscription.annee_universitaire_id', 'inscription.niveau']);
+
+    expect(Doctorant::query()->count())->toBe(0);
+    $this->actingAs(User::factory()->membreEad()->create())->postJson(route('doctorants.store'), ['etape' => 'identite', 'nom' => 'X'])->assertForbidden();
+});

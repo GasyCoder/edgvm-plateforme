@@ -42,10 +42,10 @@ async function enregistrer() {
 </script>
 
 <template>
-  <div class="space-y-8">
+  <div class="space-y-6">
     <div class="space-y-2">
-      <h1 class="text-2xl font-bold tracking-tight text-brand-900">{{ premierAcces ? 'Bienvenue sur la plateforme' : 'Nouveau mot de passe' }}</h1>
-      <p class="text-sm text-muted-foreground">
+      <h1 class="text-xl font-bold tracking-tight text-slate-700">{{ premierAcces ? 'Bienvenue sur la plateforme' : 'Nouveau mot de passe' }}</h1>
+      <p class="text-sm leading-6 text-slate-400">
         {{ premierAcces ? 'Choisissez le mot de passe de votre compte.' : 'Choisissez un nouveau mot de passe.' }}
         Au moins 10 caractères, avec des lettres et des chiffres.
       </p>
@@ -61,7 +61,7 @@ async function enregistrer() {
       <ChampFormulaire libelle="Confirmer le mot de passe" pour="password_confirmation">
         <Input id="password_confirmation" v-model="formulaire.password_confirmation" type="password" autocomplete="new-password" required />
       </ChampFormulaire>
-      <Button type="submit" size="lg" :disabled="envoi">
+      <Button type="submit" size="lg" class="w-full" :disabled="envoi">
         <Loader2 v-if="envoi" class="animate-spin" />
         Enregistrer le mot de passe
       </Button>

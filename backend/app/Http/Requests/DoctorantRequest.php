@@ -38,7 +38,41 @@ class DoctorantRequest extends FormRequest
     public function rules(): array
     {
         $doctorant = $this->route('doctorant');
-        $creation = ! $doctorant instanceof Doctorant;
+        $regles = self::regles($doctorant instanceof Doctorant ? $doctorant : null);
+        $etape = $this->input('etape');
+
+        if (! $doctorant instanceof Doctorant && is_string($etape) && isset(self::ETAPES[$etape])) {
+            return collect($regles)
+                ->filter(fn (array $regle, string $champ) => in_array(strtok($champ, '.'), self::ETAPES[$etape], true))
+                ->all();
+        }
+
+        return $regles;
+    }
+
+    /**
+     * Étapes de l'assistant de création : « etape » ne vérifie que les champs de l'étape, sans rien enregistrer.
+     */
+    public const ETAPES = [
+        'identite' => ['nom', 'prenoms', 'genre', 'date_naissance', 'lieu_naissance', 'nationalite', 'numero_piece', 'adresse'],
+        'contact' => ['email', 'telephone', 'envoyer_invitation'],
+        'these' => ['equipe_accueil_id', 'sujet_these'],
+        'inscription' => ['inscription', 'matricule', 'visible_annuaire', 'observation'],
+    ];
+
+    public function estVerificationEtape(): bool
+    {
+        return is_string($this->input('etape')) && isset(self::ETAPES[$this->input('etape')]);
+    }
+
+    /**
+     * Règles partagées par le formulaire et l'import (création si $doctorant est null).
+     *
+     * @return array<string, array<int, mixed>>
+     */
+    public static function regles(?Doctorant $doctorant = null): array
+    {
+        $creation = $doctorant === null;
 
         return [
             'nom' => ['required', 'string', 'max:120'],
@@ -71,6 +105,14 @@ class DoctorantRequest extends FormRequest
      */
     public function messages(): array
     {
+        return self::messagesValidation();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function messagesValidation(): array
+    {
         return [
             'email.unique' => 'Cette adresse e-mail est déjà utilisée par un autre compte.',
             'matricule.unique' => 'Ce matricule est déjà attribué.',
@@ -84,6 +126,14 @@ class DoctorantRequest extends FormRequest
      * @return array<string, string>
      */
     public function attributes(): array
+    {
+        return self::nomsDesChamps();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function nomsDesChamps(): array
     {
         return [
             'prenoms' => 'prénoms',

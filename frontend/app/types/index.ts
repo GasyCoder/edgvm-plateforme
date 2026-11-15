@@ -98,3 +98,19 @@ export interface Pagine<T> {
 export interface Ressource<T> {
   data: T
 }
+
+export type CategoriePiece = 'diplome' | 'piece_identite' | 'attestation' | 'publication' | 'autre'
+
+export interface PieceJointe {
+  id: number
+  categorie: CategoriePiece
+  categorie_libelle: string
+  titre: string
+  nom_original: string
+  type_mime: string
+  taille: number
+  affichable: boolean
+  ajoute_par?: string | null
+  ajoute_le: string | null
+  peut_supprimer: boolean
+}

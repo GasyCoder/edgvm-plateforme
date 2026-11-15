@@ -11,7 +11,7 @@ import type { Doctorant, Inscription, Ressource } from '~/types'
 const props = defineProps<{ id: string }>()
 
 const api = useApi()
-const { estSuperAdmin, estDoctorant } = useAuth()
+const { estSuperAdmin, estDoctorant, utilisateur } = useAuth()
 const { data: doctorant, status, refresh, error } = useAsyncData(
   () => `doctorant-${props.id}`,
   () => api<Ressource<Doctorant>>(`/api/doctorants/${props.id}`).then(r => r.data),
@@ -26,6 +26,21 @@ const ouvrirInscription = (inscription: Inscription | null = null) => {
   inscriptionModifiee.value = inscription
   dialogueInscription.value = true
 }
+
+/* « ?inscrire=1 » (depuis la liste) ouvre la fenêtre d'inscription ; « ?pieces=1 » (après création) amène aux pièces jointes. */
+const route = useRoute()
+watch(doctorant, async (fiche) => {
+  if (!fiche) return
+  if (fiche.peut.modifier && route.query.inscrire === '1') {
+    ouvrirInscription()
+    navigateTo({ query: { ...route.query, inscrire: undefined } }, { replace: true })
+  }
+  if (route.query.pieces === '1') {
+    await nextTick()
+    document.getElementById('pieces')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    navigateTo({ query: { ...route.query, pieces: undefined } }, { replace: true })
+  }
+}, { immediate: true })
 
 async function renvoyerLien() {
   if (!doctorant.value?.compte) return
@@ -132,6 +147,8 @@ useHead(() => ({ title: doctorant.value ? doctorant.value.nom_complet : 'Dossier
             </ul>
           </CardContent>
         </Card>
+
+        <PiecesJointes :doctorant-id="doctorant.id" :peut-ajouter="estSuperAdmin || utilisateur?.doctorant_id === doctorant.id" />
       </div>
 
       <div class="grid content-start gap-6">

@@ -30,10 +30,10 @@ async function demander() {
 </script>
 
 <template>
-  <div class="space-y-8">
+  <div class="space-y-6">
     <div class="space-y-2">
-      <h1 class="text-2xl font-bold tracking-tight text-brand-900">Mot de passe oublié</h1>
-      <p class="text-sm text-muted-foreground">Indiquez votre adresse e-mail : vous recevrez un lien pour en choisir un nouveau.</p>
+      <h1 class="text-xl font-bold tracking-tight text-slate-700">Mot de passe oublié</h1>
+      <p class="text-sm leading-6 text-slate-400">Indiquez votre adresse e-mail : vous recevrez un lien pour en choisir un nouveau.</p>
     </div>
 
     <div v-if="message" class="flex gap-3 rounded-lg border bg-leaf-50 p-4 text-sm">
@@ -45,7 +45,7 @@ async function demander() {
       <ChampFormulaire libelle="Adresse e-mail" pour="email" :erreur="erreur">
         <Input id="email" v-model="email" type="email" autocomplete="email" autofocus required />
       </ChampFormulaire>
-      <Button type="submit" size="lg" :disabled="envoi">
+      <Button type="submit" size="lg" class="w-full" :disabled="envoi">
         <Loader2 v-if="envoi" class="animate-spin" />
         Recevoir le lien
       </Button>

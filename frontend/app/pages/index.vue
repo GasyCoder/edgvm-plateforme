@@ -51,12 +51,12 @@ const niveaux = computed(() => data.value
 
     <div v-else-if="data" class="grid gap-6">
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <NuxtLink to="/doctorants?statut=actif" class="rounded-xl border bg-white p-5 transition-colors hover:border-brand-300">
+        <NuxtLink to="/doctorants?statut=actif" class="rounded-md border border-gray-300 bg-white p-5 transition-colors hover:border-brand-400">
           <Users class="size-5 text-brand-600" />
           <p class="mt-3 text-3xl font-bold tabular-nums text-brand-900">{{ data.doctorants_actifs }}</p>
           <p class="text-sm text-muted-foreground">Doctorants actifs</p>
         </NuxtLink>
-        <div class="rounded-xl border bg-white p-5">
+        <div class="rounded-md border border-gray-300 bg-white p-5">
           <p class="text-sm font-medium">Inscrits cette année</p>
           <p class="mt-1 text-3xl font-bold tabular-nums text-brand-900">{{ data.inscrits }}</p>
           <div class="mt-2 flex flex-wrap gap-1.5">
@@ -65,12 +65,12 @@ const niveaux = computed(() => data.value
             </NuxtLink>
           </div>
         </div>
-        <NuxtLink to="/doctorants?sans_inscription=1&statut=actif" class="rounded-xl border bg-white p-5 transition-colors hover:border-brand-300">
+        <NuxtLink to="/doctorants?sans_inscription=1&statut=actif" class="rounded-md border border-gray-300 bg-white p-5 transition-colors hover:border-brand-400">
           <CalendarX2 class="size-5" :class="data.actifs_sans_inscription ? 'text-sun-600' : 'text-muted-foreground'" />
           <p class="mt-3 text-3xl font-bold tabular-nums text-brand-900">{{ data.actifs_sans_inscription }}</p>
           <p class="text-sm text-muted-foreground">Actifs non inscrits cette année</p>
         </NuxtLink>
-        <NuxtLink to="/doctorants?niveau=derogation" class="rounded-xl border bg-white p-5 transition-colors hover:border-brand-300">
+        <NuxtLink to="/doctorants?niveau=derogation" class="rounded-md border border-gray-300 bg-white p-5 transition-colors hover:border-brand-400">
           <TriangleAlert class="size-5" :class="data.derogations_sans_decision ? 'text-destructive' : 'text-muted-foreground'" />
           <p class="mt-3 text-3xl font-bold tabular-nums text-brand-900">{{ data.derogations_sans_decision }}</p>
           <p class="text-sm text-muted-foreground">Dérogations sans décision</p>

@@ -39,10 +39,10 @@ async function seConnecter() {
 </script>
 
 <template>
-  <div class="space-y-8">
+  <div class="space-y-6">
     <div class="space-y-2">
-      <h1 class="text-2xl font-bold tracking-tight text-brand-900">Connexion</h1>
-      <p class="text-sm text-muted-foreground">Doctorants, membres des équipes d'accueil et scolarité de l'École.</p>
+      <h1 class="text-xl font-bold tracking-tight text-slate-700">Connexion</h1>
+      <p class="text-sm leading-6 text-slate-400">Doctorants, membres des équipes d'accueil et scolarité de l'École.</p>
     </div>
 
     <Alert v-if="sessionExpiree && !erreurs.email">
@@ -52,11 +52,15 @@ async function seConnecter() {
 
     <form class="grid gap-5" novalidate @submit.prevent="seConnecter">
       <ChampFormulaire libelle="Adresse e-mail" pour="email" :erreur="erreurs.email">
-        <Input id="email" v-model="formulaire.email" type="email" autocomplete="username" autofocus required :aria-invalid="!!erreurs.email" />
+        <Input id="email" v-model="formulaire.email" type="email" autocomplete="username" autofocus required class="h-11" placeholder="votre.adresse@exemple.mg" :aria-invalid="!!erreurs.email" />
       </ChampFormulaire>
-      <ChampFormulaire libelle="Mot de passe" pour="password" :erreur="erreurs.password">
+      <div class="grid gap-2">
+        <div class="flex items-center justify-between">
+          <Label for="password">Mot de passe</Label>
+          <NuxtLink to="/mot-de-passe-oublie" class="text-xs font-medium text-brand-600 hover:text-brand-700">Mot de passe oublié ?</NuxtLink>
+        </div>
         <div class="relative">
-          <Input id="password" v-model="formulaire.password" :type="voirMotDePasse ? 'text' : 'password'" autocomplete="current-password" required class="pr-10" />
+          <Input id="password" v-model="formulaire.password" :type="voirMotDePasse ? 'text' : 'password'" autocomplete="current-password" required class="h-11 pr-11" placeholder="Votre mot de passe" />
           <button
             type="button"
             class="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
@@ -67,20 +71,18 @@ async function seConnecter() {
             <Eye v-else class="size-4" />
           </button>
         </div>
-      </ChampFormulaire>
-      <div class="flex items-center justify-between gap-3">
-        <div class="flex items-center gap-2">
-          <Checkbox id="remember" v-model="formulaire.remember" />
-          <Label for="remember" class="font-normal">Rester connecté</Label>
-        </div>
-        <NuxtLink to="/mot-de-passe-oublie" class="text-sm font-medium text-brand-700 hover:underline">Mot de passe oublié ?</NuxtLink>
+        <p v-if="erreurs.password" class="text-sm text-destructive">{{ erreurs.password }}</p>
       </div>
-      <Button type="submit" size="lg" :disabled="envoi">
+      <div class="flex items-center gap-2">
+        <Checkbox id="remember" v-model="formulaire.remember" />
+        <Label for="remember" class="font-normal text-slate-600">Rester connecté</Label>
+      </div>
+      <Button type="submit" size="lg" class="w-full" :disabled="envoi">
         <Loader2 v-if="envoi" class="animate-spin" />
         Se connecter
       </Button>
     </form>
 
-    <p class="text-center text-xs text-muted-foreground">Pas encore de compte ? La scolarité de l'École le crée et vous envoie un lien par e-mail.</p>
+    <p class="text-center text-sm text-slate-400">Pas encore de compte ? La scolarité de l'École le crée et vous envoie un lien par e-mail.</p>
   </div>
 </template>

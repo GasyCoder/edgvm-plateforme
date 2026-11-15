@@ -1,83 +1,103 @@
 <script setup lang="ts">
-import { LogOut, Menu } from '@lucide/vue'
-import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { ChevronsLeft, ChevronsRight, Menu, X } from '@lucide/vue'
+import { useLocalStorage } from '@vueuse/core'
 
-const { utilisateur, deconnecter } = useAuth()
+/*
+ * Mise en page inspirée de DashWin : barre latérale blanche par sections (réductible sur grand écran),
+ * en-tête fixe, contenu pleine largeur. Sur mobile : menu latéral par le hamburger et menu rapide en bas.
+ */
 const { liensDuBas, estActif } = useNavigation()
-const menuOuvert = ref(false)
+const { anneeCourante } = useReferentiels()
+const route = useRoute()
+
+const compact = useLocalStorage('edgvm-menu-compact', false)
+const survol = ref(false)
+const menuMobile = ref(false)
+const replie = computed(() => compact.value && !survol.value)
+watch(() => route.fullPath, () => { menuMobile.value = false })
 </script>
 
 <template>
-  <div class="min-h-dvh bg-muted/40 xl:pl-64">
-    <!-- Barre latérale (grand écran) : courte, sans défilement -->
-    <aside class="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-sidebar text-sidebar-foreground xl:flex">
-      <NuxtLink to="/" class="flex items-center gap-3 border-b border-sidebar-border px-5 py-4">
-        <img src="/images/logo-edgvm-112.webp" alt="" class="size-10 rounded-md bg-white object-contain p-0.5">
-        <span class="leading-tight">
-          <span class="block font-bold text-white">EDGVM</span>
-          <span class="block text-xs text-sidebar-foreground/75">Plateforme de l'École</span>
-        </span>
-      </NuxtLink>
-      <div class="flex-1 p-3">
-        <NavigationLiens sombre />
-      </div>
-      <div class="border-t border-sidebar-border p-3">
-        <button type="button" class="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-foreground/85 hover:bg-sidebar-accent/60 hover:text-white" @click="deconnecter()">
-          <LogOut class="size-4" /> Se déconnecter
+  <div class="min-h-dvh bg-[#f5f6fa]">
+    <!-- Fond assombri derrière le menu mobile -->
+    <div v-if="menuMobile" class="fixed inset-0 z-40 bg-slate-900/40 xl:hidden" aria-hidden="true" @click="menuMobile = false" />
+
+    <aside
+      class="fixed inset-y-0 start-0 z-50 flex flex-col overflow-hidden border-e border-gray-200 bg-white transition-[transform,width] duration-300 xl:translate-x-0"
+      :class="[menuMobile ? 'translate-x-0 shadow-xl' : '-translate-x-full', replie ? 'xl:w-[74px]' : 'w-72']"
+      @mouseenter="survol = true"
+      @mouseleave="survol = false"
+    >
+      <div class="flex h-16 flex-none items-center gap-3 border-b border-gray-200 px-5">
+        <NuxtLink to="/" class="flex min-w-0 items-center gap-3">
+          <img src="/images/logo-edgvm-112.webp" alt="" class="size-9 flex-none object-contain">
+          <span class="whitespace-nowrap leading-tight transition-opacity" :class="replie ? 'opacity-0' : ''">
+            <span class="block text-lg font-extrabold tracking-tight text-brand-800">EDGVM</span>
+            <span class="block text-[11px] text-slate-400">Plateforme de l'École doctorale</span>
+          </span>
+        </NuxtLink>
+        <button type="button" class="ms-auto rounded-full p-1.5 text-slate-500 hover:bg-gray-100 xl:hidden" aria-label="Fermer le menu" @click="menuMobile = false">
+          <X class="size-5" />
         </button>
       </div>
+      <div class="flex-1 overflow-y-auto overflow-x-hidden">
+        <NavigationLiens :compact="replie" @choisi="menuMobile = false" />
+      </div>
+      <button
+        type="button"
+        class="hidden h-12 flex-none items-center gap-3 border-t border-gray-200 px-6 text-sm text-slate-400 hover:text-brand-700 xl:flex"
+        :aria-label="compact ? 'Déplier le menu' : 'Réduire le menu'"
+        @click="compact = !compact"
+      >
+        <ChevronsRight v-if="compact" class="size-5 flex-none" />
+        <ChevronsLeft v-else class="size-5 flex-none" />
+        <span class="whitespace-nowrap transition-opacity" :class="replie ? 'opacity-0' : ''">{{ compact ? 'Garder le menu ouvert' : 'Réduire le menu' }}</span>
+      </button>
     </aside>
 
-    <!-- En-tête : menu hamburger toujours présent sous xl -->
-    <header class="sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-white/95 px-3 backdrop-blur sm:px-5">
-      <Sheet v-model:open="menuOuvert">
-        <SheetTrigger as-child>
-          <Button variant="ghost" size="icon" class="xl:hidden" aria-label="Ouvrir le menu">
-            <Menu class="size-5" />
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left" class="w-72 p-0">
-          <SheetHeader class="border-b px-5 py-4 text-left">
-            <SheetTitle class="flex items-center gap-3">
-              <img src="/images/logo-edgvm-112.webp" alt="" class="size-9 rounded-md object-contain">
-              EDGVM
-            </SheetTitle>
-            <SheetDescription>{{ utilisateur?.name }}, {{ utilisateur?.role_libelle.toLowerCase() }}</SheetDescription>
-          </SheetHeader>
-          <div class="p-3">
-            <NavigationLiens @choisi="menuOuvert = false" />
+    <div class="flex min-h-dvh flex-col transition-[padding] duration-300" :class="compact ? 'xl:ps-[74px]' : 'xl:ps-72'">
+      <header
+        class="fixed inset-x-0 top-0 z-30 h-16 border-b border-gray-200 bg-white transition-[left] duration-300"
+        :class="compact ? 'xl:left-[74px]' : 'xl:left-72'"
+      >
+        <div class="flex h-full items-center gap-3 px-3 sm:px-6">
+          <button type="button" class="rounded-full p-2 text-slate-600 hover:bg-gray-100 xl:hidden" aria-label="Ouvrir le menu" @click="menuMobile = true">
+            <Menu class="size-6" />
+          </button>
+          <NuxtLink to="/" class="flex items-center gap-2 xl:hidden">
+            <img src="/images/logo-edgvm-112.webp" alt="" class="size-8 object-contain">
+            <span class="font-extrabold text-brand-800">EDGVM</span>
+          </NuxtLink>
+          <p v-if="anneeCourante" class="hidden items-center gap-2 text-sm text-slate-500 xl:flex">
+            <span class="size-2 rounded-full bg-leaf-400" />
+            Année universitaire <span class="font-semibold text-slate-700">{{ anneeCourante.libelle }}</span>
+          </p>
+          <div class="ms-auto">
+            <MenuUtilisateur />
           </div>
-          <div class="border-t p-3">
-            <Button variant="ghost" class="w-full justify-start" @click="deconnecter()">
-              <LogOut /> Se déconnecter
-            </Button>
-          </div>
-        </SheetContent>
-      </Sheet>
-      <NuxtLink to="/" class="flex items-center gap-2 xl:hidden">
-        <img src="/images/logo-edgvm-112.webp" alt="" class="size-8 rounded object-contain">
-        <span class="font-bold text-brand-900">EDGVM</span>
-      </NuxtLink>
-      <div class="ml-auto">
-        <MenuUtilisateur />
-      </div>
-    </header>
+        </div>
+      </header>
 
-    <main class="mx-auto w-full max-w-6xl px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-5 sm:px-6 xl:pb-10">
-      <slot />
-    </main>
+      <main class="flex-1 px-3 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-[calc(4rem+1.5rem)] sm:px-6 sm:pt-[calc(4rem+2rem)] xl:pb-8">
+        <slot />
+      </main>
 
-    <!-- Menu du bas (mobile et tablette) -->
-    <nav class="fixed inset-x-0 bottom-0 z-30 border-t bg-white pb-[env(safe-area-inset-bottom)] xl:hidden" aria-label="Menu rapide">
+      <footer class="hidden border-t border-gray-200 bg-white px-6 py-4 text-sm text-slate-400 xl:flex xl:justify-between">
+        <p>© {{ new Date().getFullYear() }} EDGVM, Université de Mahajanga</p>
+        <p>École Doctorale Génie du Vivant et Modélisation</p>
+      </footer>
+    </div>
+
+    <!-- Menu rapide en bas (mobile et tablette) -->
+    <nav class="fixed inset-x-0 bottom-0 z-30 border-t border-gray-200 bg-white pb-[env(safe-area-inset-bottom)] xl:hidden" aria-label="Menu rapide">
       <ul class="grid" :style="{ gridTemplateColumns: `repeat(${liensDuBas.length}, minmax(0, 1fr))` }">
         <li v-for="lien in liensDuBas" :key="lien.libelle">
           <NuxtLink
             :to="lien.vers"
-            class="flex h-16 flex-col items-center justify-center gap-1 text-xs font-medium"
-            :class="estActif(lien.vers) ? 'text-brand-800' : 'text-muted-foreground'"
+            class="flex h-16 flex-col items-center justify-center gap-1 text-xs font-semibold"
+            :class="estActif(lien.vers) ? 'text-brand-700' : 'text-slate-400'"
           >
-            <span class="flex h-7 w-12 items-center justify-center rounded-full" :class="estActif(lien.vers) ? 'bg-accent' : ''">
+            <span class="flex h-7 w-12 items-center justify-center rounded-full" :class="estActif(lien.vers) ? 'bg-brand-50' : ''">
               <component :is="lien.icone" class="size-5" />
             </span>
             {{ lien.court ?? lien.libelle }}
