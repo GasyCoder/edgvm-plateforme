@@ -29,6 +29,13 @@ return [
     ],
 
     /* WhatsApp Business : « log » en local et dans les tests (rien n'est envoyé), « meta » en production. */
+    /*
+     * Site vitrine de l'École : prévenu (message signé) dès qu'une équipe, un programme, un membre ou un doctorant change.
+     */
+    'site_vitrine' => [
+        'url' => env('SITE_VITRINE_URL'),
+    ],
+
     'whatsapp' => [
         'pilote' => env('WHATSAPP_PILOTE', 'log'),
         'jeton' => env('WHATSAPP_JETON'),

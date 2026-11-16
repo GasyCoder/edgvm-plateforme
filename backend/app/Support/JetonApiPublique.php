@@ -40,6 +40,16 @@ class JetonApiPublique
         return Reglage::valeur(self::CLE_DATE);
     }
 
+    /**
+     * Empreinte du jeton (sha256) : le site, qui a le jeton, la recalcule ; elle sert de clé pour signer les avis envoyés au site.
+     */
+    public static function empreinte(): ?string
+    {
+        $empreinte = Reglage::valeur(self::CLE);
+
+        return filled($empreinte) ? (string) $empreinte : null;
+    }
+
     public static function verifier(?string $jeton): bool
     {
         $empreinte = Reglage::valeur(self::CLE);
