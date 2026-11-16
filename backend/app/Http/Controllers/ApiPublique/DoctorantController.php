@@ -64,7 +64,7 @@ class DoctorantController extends Controller
             'sujet' => $doctorant->sujet_these,
             'equipe' => $doctorant->equipeAccueil ? ['sigle' => $doctorant->equipeAccueil->sigle, 'nom' => $doctorant->equipeAccueil->nom] : null,
             'directeur' => filled($doctorant->directeur_these) ? ['nom' => $doctorant->directeur_these, 'titre' => null] : null,
-            'these_id' => null,
+            'these_id' => filled($doctorant->sujet_these) ? $doctorant->uuid : null,
             'photo_url' => null,
         ];
     }

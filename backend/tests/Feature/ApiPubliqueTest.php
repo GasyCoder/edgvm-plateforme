@@ -129,3 +129,46 @@ it('publishes the domain, the programmes and the members of a team, without thei
     expect($reponse->getContent())->not->toContain('aina@exemple.mg')->not->toContain('0340000000');
     $this->withToken($jeton)->getJson(route('public.equipes.index'))->assertJsonPath('data.0.membres.1.nom', 'ZAFY Aina');
 });
+
+it('publishes the thesis bank: ongoing theses of active students and defended ones of graduates, nothing private', function (): void {
+    $jeton = JetonApiPublique::generer();
+    $enCours = doctorantPublic($this->equipe, 'Rabe', 'D2', ['sujet_these' => 'Plantes médicinales du Boeny']);
+    $soutenue = doctorantPublic($this->equipe, 'Soa', 'D3', ['sujet_these' => 'Mangroves de Mahajanga', 'statut' => 'diplome']);
+    doctorantPublic($this->equipe, 'Cache', 'D1', ['visible_annuaire' => false]);
+    doctorantPublic($this->equipe, 'Parti', 'D1', ['statut' => 'abandon']);
+    doctorantPublic($this->equipe, 'Vide', 'D1', ['sujet_these' => null]);
+
+    $reponse = $this->withToken($jeton)->getJson(route('public.theses.index'))
+        ->assertOk()
+        ->assertJsonPath('meta.total', 2)
+        ->assertJsonPath('data.0.id', $soutenue->uuid)
+        ->assertJsonPath('data.0.statut', 'soutenue')
+        ->assertJsonPath('data.1.titre', 'Plantes médicinales du Boeny')
+        ->assertJsonPath('data.1.statut', 'en_cours')
+        ->assertJsonPath('data.1.doctorant.nom', $enCours->nomComplet())
+        ->assertJsonPath('data.1.directeur.nom', 'Pr RABE Hery')
+        ->assertJsonPath('data.1.equipe.sigle', 'EAD 1')
+        ->assertJsonPath('data.1.universite', 'Université de Mahajanga')
+        ->assertJsonMissingPath('data.1.matricule')
+        ->assertJsonMissingPath('data.1.date_naissance');
+    expect($reponse->getContent())->not->toContain($enCours->matricule)->not->toContain($enCours->date_naissance->format('Y-m-d'));
+
+    $this->withToken($jeton)->getJson(route('public.theses.show', $enCours->uuid))->assertOk()->assertJsonPath('data.titre', 'Plantes médicinales du Boeny');
+    $this->withToken($jeton)->getJson(route('public.doctorants.index'))->assertJsonPath('data.0.these_id', $enCours->uuid);
+});
+
+it('filters the thesis bank by status, team and search, and hides what is not public', function (): void {
+    $jeton = JetonApiPublique::generer();
+    doctorantPublic($this->equipe, 'Rabe', 'D2', ['sujet_these' => 'Plantes médicinales']);
+    doctorantPublic($this->equipe, 'Soa', 'D3', ['sujet_these' => 'Mangroves', 'statut' => 'diplome']);
+    $autre = EquipeAccueil::factory()->create(['sigle' => 'EAD 4']);
+    doctorantPublic($autre, 'Zafy', 'D1', ['sujet_these' => 'Géoressources du Boeny']);
+    $cache = doctorantPublic($this->equipe, 'Cache', 'D1', ['visible_annuaire' => false]);
+
+    $this->withToken($jeton)->getJson(route('public.theses.index', ['statut' => 'soutenue']))->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.titre', 'Mangroves');
+    $this->withToken($jeton)->getJson(route('public.theses.index', ['statut' => 'en_cours']))->assertJsonPath('meta.total', 2);
+    $this->withToken($jeton)->getJson(route('public.theses.index', ['equipe' => 'EAD 4']))->assertJsonPath('meta.total', 1);
+    $this->withToken($jeton)->getJson(route('public.theses.index', ['recherche' => 'boeny']))->assertJsonPath('data.0.titre', 'Géoressources du Boeny');
+    $this->withToken($jeton)->getJson(route('public.theses.show', $cache->uuid))->assertNotFound();
+    $this->withoutToken()->getJson(route('public.theses.index'))->assertUnauthorized();
+});

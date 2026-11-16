@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\TableauDeBordController;
 use App\Http\Controllers\Api\TypeFraisController;
 use App\Http\Controllers\ApiPublique\DoctorantController as DoctorantPublicController;
 use App\Http\Controllers\ApiPublique\EquipeController as EquipePublicController;
+use App\Http\Controllers\ApiPublique\TheseController as ThesePublicController;
 use App\Http\Middleware\ModeMaintenance;
 use App\Http\Middleware\VerifierJetonApiPublique;
 use Illuminate\Support\Facades\Route;
@@ -169,4 +170,6 @@ Route::prefix('public/v1')->name('public.')->middleware([VerifierJetonApiPubliqu
     Route::get('/equipes', [EquipePublicController::class, 'index'])->name('equipes.index');
     Route::get('/equipes/{sigle}', [EquipePublicController::class, 'show'])->name('equipes.show');
     Route::get('/doctorants', [DoctorantPublicController::class, 'index'])->name('doctorants.index');
+    Route::get('/theses', [ThesePublicController::class, 'index'])->name('theses.index');
+    Route::get('/theses/{id}', [ThesePublicController::class, 'show'])->name('theses.show');
 });

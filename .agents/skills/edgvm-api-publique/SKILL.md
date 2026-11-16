@@ -31,7 +31,11 @@ Protection :
 | `GET /equipes` | aucun | `{ "data": [Equipe], "meta": { "total" } }` |
 | `GET /equipes/{sigle}` | aucun | `{ "data": Equipe }`, ou 404 |
 
-En place : `/doctorants` et `/equipes` (`App\Http\Controllers\ApiPublique`). Pas encore : `/theses` (la plateforme n'a pas de banque de thèses), le test de connexion du site le signale.
+Toutes en place (`App\Http\Controllers\ApiPublique`). La banque de thèses est tirée des dossiers des doctorants :
+- `en_cours` : doctorant actif avec un sujet de thèse ;
+- `soutenue` : docteur au statut « diplômé » ;
+- seulement ceux qui ont accepté de figurer dans l'annuaire (`visible_annuaire`) ; `id` est l'UUID du doctorant, repris dans `these_id` de l'annuaire ;
+- la plateforme n'a pas encore de résumé, de mots-clés, de date de soutenance, de jury ni de PDF : ces champs sont vides (`null` ou `[]`).
 
 ## Objets
 
