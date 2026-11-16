@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Loader2, Pencil, Search, Send, UserPlus } from '@lucide/vue'
+import { Loader2, Pencil, Search, Send, ShieldCheck, ShieldOff, UserPlus } from '@lucide/vue'
 import { useDebounceFn } from '@vueuse/core'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
@@ -42,7 +42,29 @@ function ouvrir(compte: Compte | null = null) {
     ? { name: compte.name, email: compte.email, telephone: compte.telephone ?? '', role: compte.role, actif: compte.actif, equipes: compte.equipes?.map(e => e.id) ?? [], envoyer_invitation: false }
     : vide())
   erreurs.value = {}
+  confirmerReinitialisation.value = false
   ouvert.value = true
+}
+
+/* Téléphone perdu, plus de codes de secours : l'administration coupe la double authentification du compte */
+const confirmerReinitialisation = ref(false)
+const reinitialisation = ref(false)
+async function reinitialiserDeuxFacteurs() {
+  if (!modifie.value) return
+  reinitialisation.value = true
+  try {
+    const reponse = await api<{ message: string }>(`/api/comptes/${modifie.value.id}/deux-facteurs`, { method: 'DELETE' })
+    toast.success(reponse.message)
+    modifie.value = { ...modifie.value, deux_facteurs: false }
+    confirmerReinitialisation.value = false
+    await refresh()
+  }
+  catch (e) {
+    toast.error(messageErreur(e))
+  }
+  finally {
+    reinitialisation.value = false
+  }
 }
 
 function basculerEquipe(id: number, coche: boolean | 'indeterminate') {
@@ -143,6 +165,9 @@ async function envoyerLien(compte: Compte) {
                 <span class="inline-flex items-center gap-1.5 text-sm font-medium" :class="compte.actif ? 'text-leaf-600' : 'text-slate-400'">
                   <span class="size-1.5 rounded-full bg-current" />{{ compte.actif ? 'Actif' : 'Désactivé' }}
                 </span>
+                <span v-if="compte.deux_facteurs" class="ms-2 inline-flex items-center gap-1 rounded bg-brand-50 px-1.5 py-0.5 align-middle text-xs font-semibold text-brand-800" title="Double authentification activée">
+                  <ShieldCheck class="size-3.5" aria-hidden="true" />2FA
+                </span>
               </td>
               <td :class="td" class="text-end">
                 <div class="flex justify-end gap-1">
@@ -204,6 +229,23 @@ async function envoyerLien(compte: Compte) {
             <Switch id="compte-invitation" v-model="formulaire.envoyer_invitation" />
           </div>
           <p v-if="erreurs.actif" class="text-sm text-destructive">{{ erreurs.actif }}</p>
+          <div v-if="modifie?.deux_facteurs" class="grid gap-3 rounded-lg border p-4">
+            <div class="flex items-center justify-between gap-4">
+              <p class="flex items-center gap-2 text-sm font-medium"><ShieldCheck class="size-4 text-brand-600" aria-hidden="true" /> Double authentification activée</p>
+              <Button v-if="!confirmerReinitialisation" type="button" variant="outline" size="sm" class="text-destructive hover:text-destructive" @click="confirmerReinitialisation = true">
+                <ShieldOff /> Désactiver
+              </Button>
+            </div>
+            <div v-if="confirmerReinitialisation" class="grid gap-3 rounded-md bg-red-50 p-3 text-sm text-destructive">
+              <p>À faire seulement si la personne a perdu son téléphone et ses codes de secours. Elle pourra se connecter avec son seul mot de passe, puis réactiver la protection.</p>
+              <div class="flex gap-2">
+                <Button type="button" variant="destructive" size="sm" :disabled="reinitialisation" @click="reinitialiserDeuxFacteurs">
+                  <Loader2 v-if="reinitialisation" class="animate-spin" /> Confirmer la désactivation
+                </Button>
+                <Button type="button" variant="ghost" size="sm" @click="confirmerReinitialisation = false">Annuler</Button>
+              </div>
+            </div>
+          </div>
         </form>
         <DialogFooter>
           <Button variant="outline" @click="ouvert = false">Annuler</Button>

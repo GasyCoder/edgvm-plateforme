@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Notifications\Canaux\Contrats\EnvoiWhatsApp;
+use App\Notifications\Canaux\Pilotes\WhatsAppJournal;
+use App\Notifications\Canaux\Pilotes\WhatsAppMeta;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\ServiceProvider;
@@ -11,7 +14,7 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->app->bind(EnvoiWhatsApp::class, fn () => config('services.whatsapp.pilote') === 'meta' ? new WhatsAppMeta : new WhatsAppJournal);
     }
 
     public function boot(): void

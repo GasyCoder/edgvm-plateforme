@@ -49,6 +49,7 @@ export interface Utilisateur {
   role: Role
   role_libelle: string
   photo_url: string | null
+  deux_facteurs: boolean
   doctorant_id: string | null
   equipes: Equipe[]
 }
@@ -59,6 +60,7 @@ export interface Compte {
   email: string
   telephone: string | null
   photo_url?: string | null
+  deux_facteurs?: boolean
   role: Role
   role_libelle: string
   actif: boolean

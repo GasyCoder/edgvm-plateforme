@@ -42,7 +42,7 @@ Chaque accès passe par une **Policy** Laravel. Un doctorant ne doit jamais pouv
 cd backend
 composer install && cp .env.example .env && php artisan key:generate
 php artisan migrate --seed            # en local : comptes admin@, membre@, doctorant@edgvm.test (mot de passe « password »)
-php artisan serve                     # http://localhost:8000
+php artisan serve --no-reload         # http://localhost:8000 (plusieurs requêtes à la fois : PHP_CLI_SERVER_WORKERS=4 dans .env)
 php artisan queue:work                # envoie les e-mails (notifications en file d'attente)
 php artisan plateforme:creer-admin adresse@exemple.mg   # premier compte d'administration en production
 php artisan test --compact            # tous les tests
@@ -126,6 +126,13 @@ Règles métier :
 
 Canaux : plateforme (base de données), e-mail, SMS, WhatsApp. Voir le skill `edgvm-notifications`.
 Les numéros sont en E.164. SMS et WhatsApp passent par des canaux maison derrière une interface, avec un pilote `log` en local et dans les tests (aucun envoi réel hors production).
+
+## Créer mon accès (activation par code)
+
+- Page publique `/creer-mon-acces` (lien depuis la connexion). Un doctorant ou membre d'équipe déjà enregistré, actif et jamais connecté saisit son e-mail ou son numéro : code à 4 chiffres par e-mail ou par WhatsApp (`CodeActivation`, envoyé sans file d'attente), puis mot de passe, puis connexion (`ActivationCompteController`).
+- `codes_verification` : code haché, 10 minutes, 5 essais, 5 envois, 60 s entre deux envois ; après vérification, jeton à usage unique de 15 minutes pour choisir le mot de passe. Routes `api/activation/*` limitées en débit.
+- Refusés : compte inconnu, désactivé, administration, candidat (compte inactif), numéro partagé par plusieurs comptes. Déjà connecté une fois : réponse 409 `deja_active` (« Mot de passe oublié »).
+- WhatsApp : canal `App\Notifications\Canaux\CanalWhatsApp`, interface `EnvoiWhatsApp`, pilotes `WhatsAppJournal` (`log`, défaut) et `WhatsAppMeta` (API Cloud, modèle validé `WHATSAPP_MODELE_CODE`).
 
 ## Candidats
 

@@ -47,7 +47,7 @@ const enTete = 'flex items-start gap-3 border-b border-gray-200 px-5 py-4'
 
 <template>
   <div>
-    <EnTetePage titre="Mon compte" description="Vos informations, votre mot de passe et l'affichage de la plateforme." />
+    <EnTetePage titre="Mon compte" description="Vos informations, votre mot de passe, la double authentification et l'affichage." />
 
     <div v-if="utilisateur" class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
       <div class="grid content-start gap-6">
@@ -112,36 +112,40 @@ const enTete = 'flex items-start gap-3 border-b border-gray-200 px-5 py-4'
         </section>
       </div>
 
-      <!-- Mot de passe -->
-      <section :class="section" aria-labelledby="titre-mot-de-passe" class="h-fit">
-        <div :class="enTete">
-          <KeyRound class="mt-0.5 size-5 flex-none text-brand-600" aria-hidden="true" />
-          <div>
-            <h2 id="titre-mot-de-passe" class="font-bold text-slate-700">Changer de mot de passe</h2>
-            <p class="text-sm text-slate-400">Choisissez un mot de passe que vous n'utilisez nulle part ailleurs.</p>
+      <div class="grid content-start gap-6">
+        <!-- Mot de passe -->
+        <section :class="section" aria-labelledby="titre-mot-de-passe" class="h-fit">
+          <div :class="enTete">
+            <KeyRound class="mt-0.5 size-5 flex-none text-brand-600" aria-hidden="true" />
+            <div>
+              <h2 id="titre-mot-de-passe" class="font-bold text-slate-700">Changer de mot de passe</h2>
+              <p class="text-sm text-slate-400">Choisissez un mot de passe que vous n'utilisez nulle part ailleurs.</p>
+            </div>
           </div>
-        </div>
-        <form class="grid gap-5 px-5 py-5" novalidate @submit.prevent="changer">
-          <ChampFormulaire libelle="Mot de passe actuel" pour="actuel" :erreur="erreurs.mot_de_passe_actuel">
-            <ChampMotDePasse id="actuel" v-model="formulaire.mot_de_passe_actuel" autocomplete="current-password" :invalide="!!erreurs.mot_de_passe_actuel" />
-          </ChampFormulaire>
-          <div class="grid gap-5 sm:grid-cols-2">
-            <ChampFormulaire libelle="Nouveau mot de passe" pour="nouveau" :erreur="erreurs.password">
-              <ChampMotDePasse id="nouveau" v-model="formulaire.password" autocomplete="new-password" :invalide="!!erreurs.password" />
+          <form class="grid gap-5 px-5 py-5" novalidate @submit.prevent="changer">
+            <ChampFormulaire libelle="Mot de passe actuel" pour="actuel" :erreur="erreurs.mot_de_passe_actuel">
+              <ChampMotDePasse id="actuel" v-model="formulaire.mot_de_passe_actuel" autocomplete="current-password" :invalide="!!erreurs.mot_de_passe_actuel" />
             </ChampFormulaire>
-            <ChampFormulaire libelle="Confirmer le nouveau mot de passe" pour="confirmation">
-              <ChampMotDePasse id="confirmation" v-model="formulaire.password_confirmation" autocomplete="new-password" />
-            </ChampFormulaire>
-          </div>
-          <div class="rounded-md bg-gray-50 px-4 py-3">
-            <ReglesMotDePasse :mot-de-passe="formulaire.password" :confirmation="formulaire.password_confirmation" />
-          </div>
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <p class="flex items-center gap-1.5 text-xs text-slate-400"><ShieldCheck class="size-4" aria-hidden="true" />Vous restez connecté sur cet appareil.</p>
-            <Button type="submit" :disabled="envoi || !pret"><Loader2 v-if="envoi" class="animate-spin" /> Changer le mot de passe</Button>
-          </div>
-        </form>
-      </section>
+            <div class="grid gap-5 sm:grid-cols-2">
+              <ChampFormulaire libelle="Nouveau mot de passe" pour="nouveau" :erreur="erreurs.password">
+                <ChampMotDePasse id="nouveau" v-model="formulaire.password" autocomplete="new-password" :invalide="!!erreurs.password" />
+              </ChampFormulaire>
+              <ChampFormulaire libelle="Confirmer le nouveau mot de passe" pour="confirmation">
+                <ChampMotDePasse id="confirmation" v-model="formulaire.password_confirmation" autocomplete="new-password" />
+              </ChampFormulaire>
+            </div>
+            <div class="rounded-md bg-gray-50 px-4 py-3">
+              <ReglesMotDePasse :mot-de-passe="formulaire.password" :confirmation="formulaire.password_confirmation" />
+            </div>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <p class="flex items-center gap-1.5 text-xs text-slate-400"><ShieldCheck class="size-4" aria-hidden="true" />Vous restez connecté sur cet appareil.</p>
+              <Button type="submit" :disabled="envoi || !pret"><Loader2 v-if="envoi" class="animate-spin" /> Changer le mot de passe</Button>
+            </div>
+          </form>
+        </section>
+
+        <CarteDeuxFacteurs />
+      </div>
     </div>
   </div>
 </template>

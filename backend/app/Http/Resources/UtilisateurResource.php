@@ -25,6 +25,7 @@ class UtilisateurResource extends JsonResource
             'email' => $this->email,
             'telephone' => $this->telephone,
             'photo_url' => PhotoUtilisateur::url($this->resource),
+            'deux_facteurs' => $this->resource->deuxFacteursActive(),
             'role' => $this->role->value,
             'role_libelle' => $this->role->libelle(),
             'doctorant_id' => $this->whenLoaded('doctorant', fn () => $this->doctorant?->uuid),

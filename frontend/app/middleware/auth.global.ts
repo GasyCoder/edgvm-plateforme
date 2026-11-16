@@ -1,6 +1,6 @@
 import type { Role } from '~/types'
 
-const PAGES_PUBLIQUES = ['/connexion', '/mot-de-passe-oublie']
+const PAGES_PUBLIQUES = ['/connexion', '/mot-de-passe-oublie', '/creer-mon-acces']
 
 /**
  * Toutes les pages demandent une connexion, sauf la connexion et le mot de passe.
@@ -16,7 +16,7 @@ export default defineNuxtRouteMiddleware(async (vers) => {
   }
 
   if (publique) {
-    return utilisateur.value && vers.path === '/connexion' ? navigateTo('/') : undefined
+    return utilisateur.value && ['/connexion', '/creer-mon-acces'].includes(vers.path) ? navigateTo('/') : undefined
   }
 
   if (!utilisateur.value) {

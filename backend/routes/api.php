@@ -1,11 +1,13 @@
 <?php
 
 use App\Http\Controllers\Api\ActeController;
+use App\Http\Controllers\Api\ActivationCompteController;
 use App\Http\Controllers\Api\AnneeUniversitaireController;
 use App\Http\Controllers\Api\ApiPubliqueController;
 use App\Http\Controllers\Api\AuthentificationController;
 use App\Http\Controllers\Api\CandidatController;
 use App\Http\Controllers\Api\CompteController;
+use App\Http\Controllers\Api\DeuxFacteursController;
 use App\Http\Controllers\Api\DoctorantController;
 use App\Http\Controllers\Api\EquipeAccueilController;
 use App\Http\Controllers\Api\FraisController;
@@ -36,8 +38,21 @@ use Illuminate\Support\Facades\Route;
  */
 Route::middleware('throttle:6,1')->group(function (): void {
     Route::post('/connexion', [AuthentificationController::class, 'connexion'])->name('connexion');
+    Route::post('/connexion/deux-facteurs', [AuthentificationController::class, 'deuxFacteurs'])->name('connexion.deux-facteurs');
     Route::post('/mot-de-passe/oublie', [AuthentificationController::class, 'motDePasseOublie'])->name('mot-de-passe.oublie');
     Route::post('/mot-de-passe/reinitialiser', [AuthentificationController::class, 'reinitialiserMotDePasse'])->name('mot-de-passe.reinitialiser');
+});
+
+/* « Créer mon accès » : code à 4 chiffres par e-mail ou WhatsApp, puis mot de passe (comptes déjà enregistrés par la scolarité) */
+Route::prefix('activation')->name('activation.')->group(function (): void {
+    Route::middleware('throttle:6,1')->group(function (): void {
+        Route::post('/demande', [ActivationCompteController::class, 'demander'])->name('demande');
+        Route::post('/renvoyer', [ActivationCompteController::class, 'renvoyer'])->name('renvoyer');
+    });
+    Route::middleware('throttle:15,1')->group(function (): void {
+        Route::post('/verifier', [ActivationCompteController::class, 'verifier'])->name('verifier');
+        Route::post('/terminer', [ActivationCompteController::class, 'terminer'])->name('terminer');
+    });
 });
 
 /* Nom, logos, maintenance et apparence : lus par l'interface avant la connexion */
@@ -48,6 +63,12 @@ Route::middleware(['auth:sanctum', ModeMaintenance::class])->group(function (): 
     Route::get('/moi', [AuthentificationController::class, 'moi'])->name('moi');
     Route::post('/moi/photo', [PhotoUtilisateurController::class, 'enregistrerMienne'])->name('moi.photo');
     Route::delete('/moi/photo', [PhotoUtilisateurController::class, 'supprimerMienne'])->name('moi.photo.supprimer');
+    Route::get('/moi/deux-facteurs', [DeuxFacteursController::class, 'etat'])->name('deux-facteurs.etat');
+    Route::post('/moi/deux-facteurs/preparer', [DeuxFacteursController::class, 'preparer'])->name('deux-facteurs.preparer');
+    Route::post('/moi/deux-facteurs/confirmer', [DeuxFacteursController::class, 'confirmer'])->name('deux-facteurs.confirmer');
+    Route::post('/moi/deux-facteurs/codes-secours', [DeuxFacteursController::class, 'regenererCodes'])->name('deux-facteurs.codes');
+    Route::delete('/moi/deux-facteurs', [DeuxFacteursController::class, 'desactiver'])->name('deux-facteurs.desactiver');
+    Route::delete('/comptes/{compte}/deux-facteurs', [DeuxFacteursController::class, 'reinitialiserCompte'])->name('comptes.deux-facteurs');
     Route::put('/moi/mot-de-passe', [AuthentificationController::class, 'modifierMotDePasse'])->name('moi.mot-de-passe');
 
     Route::get('/tableau-de-bord', TableauDeBordController::class)->name('tableau-de-bord');

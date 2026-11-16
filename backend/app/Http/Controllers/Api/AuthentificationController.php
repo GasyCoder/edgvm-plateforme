@@ -9,6 +9,7 @@ use App\Http\Requests\MotDePasseOublieRequest;
 use App\Http\Requests\ReinitialiserMotDePasseRequest;
 use App\Http\Resources\UtilisateurResource;
 use App\Models\User;
+use App\Support\DeuxFacteurs;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,23 +21,66 @@ use Illuminate\Validation\ValidationException;
 
 class AuthentificationController extends Controller
 {
-    public function connexion(ConnexionRequest $request): UtilisateurResource
+    private const DEUX_FACTEURS = 'connexion.deux_facteurs';
+
+    /**
+     * Si la double authentification est active, le mot de passe ne suffit pas : la réponse demande le code
+     * de l'appli (étape suivante : deuxFacteurs), sans ouvrir de session.
+     */
+    public function connexion(ConnexionRequest $request): UtilisateurResource|JsonResponse
     {
         $identifiants = ['email' => mb_strtolower(trim($request->string('email'))), 'password' => $request->string('password')->toString()];
 
-        if (! Auth::guard('web')->attempt($identifiants, $request->boolean('remember'))) {
+        if (! Auth::guard('web')->validate($identifiants)) {
             throw ValidationException::withMessages(['email' => 'Adresse e-mail ou mot de passe incorrect.']);
         }
 
         /** @var User $user */
-        $user = Auth::guard('web')->user();
+        $user = User::query()->where('email', $identifiants['email'])->firstOrFail();
 
         if (! $user->actif) {
-            Auth::guard('web')->logout();
-
             throw ValidationException::withMessages(['email' => 'Ce compte est désactivé. Contactez la scolarité de l\'École.']);
         }
 
+        if ($user->deuxFacteursActive()) {
+            $request->session()->put(self::DEUX_FACTEURS, ['id' => $user->id, 'remember' => $request->boolean('remember'), 'expire' => now()->addMinutes(5)->getTimestamp(), 'essais' => 0]);
+
+            return response()->json(['deux_facteurs' => true, 'message' => 'Saisissez le code de votre appli d\'authentification.']);
+        }
+
+        return $this->ouvrirSession($request, $user, $request->boolean('remember'));
+    }
+
+    /**
+     * Deuxième étape : code de l'appli (ou code de secours), dans les 5 minutes, 5 essais au plus.
+     */
+    public function deuxFacteurs(Request $request): UtilisateurResource|JsonResponse
+    {
+        $request->validate(['code' => ['required', 'string', 'max:20']], ['code.required' => 'Saisissez le code de votre appli, ou un code de secours.']);
+        $attente = $request->session()->get(self::DEUX_FACTEURS);
+
+        if (! is_array($attente) || $attente['expire'] < now()->getTimestamp() || $attente['essais'] >= 5) {
+            $request->session()->forget(self::DEUX_FACTEURS);
+
+            return response()->json(['message' => 'Délai dépassé : reconnectez-vous avec votre mot de passe.', 'recommencer' => true], 422);
+        }
+
+        $user = User::query()->where('actif', true)->find($attente['id']);
+        if (! $user || ! DeuxFacteurs::verifier($user, $request->string('code')->toString())) {
+            $request->session()->put(self::DEUX_FACTEURS, [...$attente, 'essais' => $attente['essais'] + 1]);
+            $reste = 4 - $attente['essais'];
+
+            return response()->json(['message' => 'Code incorrect.', 'errors' => ['code' => [$reste > 0 ? "Code incorrect. Il reste {$reste} essai".($reste > 1 ? 's' : '').'.' : 'Code incorrect.']]], 422);
+        }
+
+        $request->session()->forget(self::DEUX_FACTEURS);
+
+        return $this->ouvrirSession($request, $user, (bool) $attente['remember']);
+    }
+
+    private function ouvrirSession(Request $request, User $user, bool $souvenir): UtilisateurResource
+    {
+        Auth::guard('web')->login($user, $souvenir);
         $request->session()->regenerate();
         $user->forceFill(['derniere_connexion_le' => now()])->save();
 

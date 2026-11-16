@@ -28,6 +28,16 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    /* WhatsApp Business : « log » en local et dans les tests (rien n'est envoyé), « meta » en production. */
+    'whatsapp' => [
+        'pilote' => env('WHATSAPP_PILOTE', 'log'),
+        'jeton' => env('WHATSAPP_JETON'),
+        'numero_id' => env('WHATSAPP_NUMERO_ID'),
+        'version' => env('WHATSAPP_VERSION', 'v21.0'),
+        'langue' => env('WHATSAPP_LANGUE', 'fr'),
+        'modele_code' => env('WHATSAPP_MODELE_CODE', 'code_verification'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

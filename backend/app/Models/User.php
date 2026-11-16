@@ -13,7 +13,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 #[Fillable(['name', 'email', 'password', 'role', 'telephone', 'actif'])]
-#[Hidden(['password', 'remember_token'])]
+#[Hidden(['password', 'remember_token', 'deux_facteurs_secret', 'deux_facteurs_secours', 'deux_facteurs_dernier_pas'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -27,6 +27,10 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'derniere_connexion_le' => 'datetime',
+            'deux_facteurs_secret' => 'encrypted',
+            'deux_facteurs_active_le' => 'datetime',
+            'deux_facteurs_secours' => 'encrypted:array',
+            'deux_facteurs_dernier_pas' => 'integer',
             'password' => 'hashed',
             'role' => RoleUtilisateur::class,
             'actif' => 'boolean',
@@ -76,5 +80,11 @@ class User extends Authenticatable
     public function idsEquipesSuivies(): array
     {
         return $this->equipesAccueil()->pluck('equipes_accueil.id')->all();
+    }
+
+    /** Double authentification activée (confirmée par un premier code de l'appli) */
+    public function deuxFacteursActive(): bool
+    {
+        return ($this->getAttributes()['deux_facteurs_active_le'] ?? null) !== null;
     }
 }
