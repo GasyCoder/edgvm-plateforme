@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\AutoriserLienTelechargement;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -17,6 +19,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->statefulApi();
         // Un lien de téléchargement ouvert sans session renvoie vers la page de connexion de l'interface.
         $middleware->redirectGuestsTo(fn () => '/connexion');
+        // Lien signé de l'application mobile : lu avant la vérification de connexion.
+        $middleware->prependToPriorityList(before: AuthenticatesRequests::class, prepend: AutoriserLienTelechargement::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

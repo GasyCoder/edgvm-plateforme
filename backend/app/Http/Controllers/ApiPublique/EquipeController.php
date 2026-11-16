@@ -5,18 +5,21 @@ namespace App\Http\Controllers\ApiPublique;
 use App\Enums\StatutDoctorant;
 use App\Http\Controllers\Controller;
 use App\Models\EquipeAccueil;
+use App\Models\MembreEquipe;
+use App\Models\ProgrammeDoctoral;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 
 /**
- * Équipes d'accueil pour le site vitrine, reliées à ses fiches par le sigle.
- * Seuls des effectifs sont publiés, jamais de donnée personnelle.
+ * Équipes d'accueil pour le site vitrine, reliées à ses fiches par le sigle : la plateforme fait référence
+ * pour le nom, le domaine, la description, les programmes et les membres.
+ * Des membres, seuls le nom, le titre, la fonction, la spécialité et l'établissement sont publiés (jamais e-mail ni téléphone).
  */
 class EquipeController extends Controller
 {
     public function index(): JsonResponse
     {
-        $equipes = $this->requete()->orderBy('sigle')->get();
+        $equipes = $this->requete()->ordonnees()->get();
 
         return response()->json([
             'data' => $equipes->map(fn (EquipeAccueil $equipe) => $this->format($equipe))->values(),
@@ -40,6 +43,7 @@ class EquipeController extends Controller
         $niveau = fn (string $niveau) => fn (Builder $doctorant) => $actifs($doctorant)->niveauCourant($niveau);
 
         return EquipeAccueil::query()
+            ->with(['programmes', 'personnes'])
             ->withCount([
                 'doctorants as effectif' => $actifs,
                 'doctorants as effectif_d1' => $niveau('D1'),
@@ -57,7 +61,20 @@ class EquipeController extends Controller
         return [
             'sigle' => $equipe->sigle,
             'nom' => $equipe->nom,
+            'domaine' => $equipe->domaine,
             'description' => $equipe->description,
+            'programmes' => $equipe->programmes->map(fn (ProgrammeDoctoral $programme) => [
+                'nom' => $programme->nom,
+                'description' => $programme->description,
+            ])->values()->all(),
+            'membres' => $equipe->personnes->map(fn (MembreEquipe $membre) => [
+                'nom' => $membre->nom,
+                'titre' => $membre->titre,
+                'fonction' => $membre->fonction->value,
+                'fonction_libelle' => $membre->fonction->libelle(),
+                'specialite' => $membre->specialite,
+                'etablissement' => $membre->etablissement,
+            ])->values()->all(),
             'effectifs' => [
                 'total' => (int) $equipe->getAttribute('effectif'),
                 'D1' => (int) $equipe->getAttribute('effectif_d1'),

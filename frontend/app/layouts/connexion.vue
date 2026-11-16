@@ -4,7 +4,7 @@ const { application } = useApplication()
 
 <template>
   <!-- Fond aux couleurs du logo : jaune doux, bande jaune en haut ; la carte reste blanche pour la lisibilité -->
-  <div class="flex min-h-dvh flex-col bg-gradient-to-b from-sun-200 via-sun-50 to-white">
+  <div class="flex min-h-dvh flex-col bg-gradient-to-b from-sun-200 via-sun-50 to-white pt-[var(--haut-securise)] pb-[var(--bas-securise)]">
     <div class="h-1.5 flex-none bg-gradient-to-r from-sun-400 via-sun-300 to-gold" aria-hidden="true" />
     <div class="m-auto w-full max-w-[460px] px-4 py-10 sm:max-w-[520px] sm:px-5">
       <NuxtLink to="/connexion" class="mb-7 flex flex-col items-center gap-2 text-center">

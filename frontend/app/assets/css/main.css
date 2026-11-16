@@ -3,6 +3,15 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Zones sûres du téléphone (encoche, barre d'état, barre de gestes) : nulles sur ordinateur.
+ * L'application Android (Capacitor) fournit aussi les variables --safe-area-inset-*.
+ */
+:root {
+    --haut-securise: max(env(safe-area-inset-top), var(--safe-area-inset-top, 0px));
+    --bas-securise: max(env(safe-area-inset-bottom), var(--safe-area-inset-bottom, 0px));
+}
+
 /* Open Sans hébergée avec l'interface (police variable 400 à 800). */
 @font-face {
     font-family: 'Open Sans';

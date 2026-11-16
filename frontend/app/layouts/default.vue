@@ -45,7 +45,7 @@ watch(() => route.fullPath, () => { menuMobile.value = false })
     <div v-if="menuMobile" class="fixed inset-0 z-40 bg-slate-900/40 xl:hidden" aria-hidden="true" @click="menuMobile = false" />
 
     <aside
-      class="fixed inset-y-0 start-0 z-50 flex flex-col overflow-hidden border-e border-gray-200 bg-white transition-[transform,width] duration-300 xl:translate-x-0"
+      class="fixed inset-y-0 start-0 z-50 flex flex-col overflow-hidden border-e pt-[var(--haut-securise)] border-gray-200 bg-white transition-[transform,width] duration-300 xl:translate-x-0"
       :class="[menuMobile ? 'translate-x-0 shadow-xl' : '-translate-x-full', replie ? 'xl:w-[74px]' : 'w-72', compact && survol ? 'xl:shadow-xl' : '']"
       @mouseenter="entrer"
       @mouseleave="sortir"
@@ -80,7 +80,7 @@ watch(() => route.fullPath, () => { menuMobile.value = false })
 
     <div class="flex min-h-dvh flex-col transition-[padding] duration-300" :class="compact ? 'xl:ps-[74px]' : 'xl:ps-72'">
       <header
-        class="fixed inset-x-0 top-0 z-30 h-16 border-b border-gray-200 bg-white transition-[left] duration-300"
+        class="fixed inset-x-0 top-0 z-30 h-[calc(4rem+var(--haut-securise))] border-b border-gray-200 bg-white pt-[var(--haut-securise)] transition-[left] duration-300"
         :class="compact ? 'xl:left-[74px]' : 'xl:left-72'"
       >
         <div class="flex h-full items-center gap-3 px-3 sm:px-6">
@@ -102,7 +102,7 @@ watch(() => route.fullPath, () => { menuMobile.value = false })
         </div>
       </header>
 
-      <main class="flex-1 px-3 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-[calc(4rem+1.5rem)] sm:px-6 sm:pt-[calc(4rem+2rem)] xl:pb-8">
+      <main class="flex-1 px-3 pb-[calc(5.5rem+var(--bas-securise))] pt-[calc(5.5rem+var(--haut-securise))] sm:px-6 sm:pt-[calc(6rem+var(--haut-securise))] xl:pb-8">
         <EcranMaintenance v-if="enMaintenance && !estSuperAdmin" />
         <template v-else>
           <div v-if="enMaintenance" class="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-sun-300 bg-sun-50 px-4 py-3 text-sm text-sun-700" role="status">
@@ -120,7 +120,7 @@ watch(() => route.fullPath, () => { menuMobile.value = false })
     </div>
 
     <!-- Menu rapide en bas (mobile et tablette) -->
-    <nav class="fixed inset-x-0 bottom-0 z-30 border-t border-gray-200 bg-white pb-[env(safe-area-inset-bottom)] xl:hidden" aria-label="Menu rapide">
+    <nav class="fixed inset-x-0 bottom-0 z-30 border-t border-gray-200 bg-white pb-[var(--bas-securise)] xl:hidden" aria-label="Menu rapide">
       <ul class="grid" :style="{ gridTemplateColumns: `repeat(${liensDuBas.length}, minmax(0, 1fr))` }">
         <li v-for="lien in liensDuBas" :key="lien.libelle">
           <NuxtLink

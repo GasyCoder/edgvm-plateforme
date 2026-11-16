@@ -1,0 +1,8 @@
+node_modules/
+www/adresse.js
+# Clé de signature et mots de passe : jamais dans le dépôt (à sauvegarder à part)
+*.jks
+*.keystore
+android/keystore.properties
+*.apk
+*.aab

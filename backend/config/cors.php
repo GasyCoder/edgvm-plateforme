@@ -19,7 +19,11 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],
+    /*
+     * L'interface, l'application mobile et le site vitrine (appel serveur à serveur) n'ont pas besoin du CORS :
+     * seuls les domaines listés ici peuvent appeler l'API depuis un navigateur. Par défaut, la plateforme elle-même.
+     */
+    'allowed_origins' => array_values(array_filter(array_map('trim', explode(',', (string) env('CORS_ORIGINES_AUTORISEES', env('APP_URL', '')))))),
 
     'allowed_origins_patterns' => [],
 

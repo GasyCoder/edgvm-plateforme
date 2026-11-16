@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\EquipeAccueilController;
 use App\Http\Controllers\Api\FraisController;
 use App\Http\Controllers\Api\ImportExportDoctorantsController;
 use App\Http\Controllers\Api\InscriptionController;
+use App\Http\Controllers\Api\LienTelechargementController;
 use App\Http\Controllers\Api\MembreEquipeController;
 use App\Http\Controllers\Api\ModeleActeController;
 use App\Http\Controllers\Api\NotificationController;
@@ -69,6 +70,7 @@ Route::middleware(['auth:sanctum', ModeMaintenance::class])->group(function (): 
     Route::post('/moi/deux-facteurs/codes-secours', [DeuxFacteursController::class, 'regenererCodes'])->name('deux-facteurs.codes');
     Route::delete('/moi/deux-facteurs', [DeuxFacteursController::class, 'desactiver'])->name('deux-facteurs.desactiver');
     Route::delete('/comptes/{compte}/deux-facteurs', [DeuxFacteursController::class, 'reinitialiserCompte'])->name('comptes.deux-facteurs');
+    Route::post('/liens-telechargement', LienTelechargementController::class)->middleware('throttle:60,1')->name('liens-telechargement');
     Route::put('/moi/mot-de-passe', [AuthentificationController::class, 'modifierMotDePasse'])->name('moi.mot-de-passe');
 
     Route::get('/tableau-de-bord', TableauDeBordController::class)->name('tableau-de-bord');

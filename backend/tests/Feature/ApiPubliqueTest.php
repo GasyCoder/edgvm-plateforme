@@ -5,6 +5,7 @@ use App\Models\AnneeUniversitaire;
 use App\Models\Doctorant;
 use App\Models\EquipeAccueil;
 use App\Models\Inscription;
+use App\Models\MembreEquipe;
 use App\Models\User;
 use App\Support\JetonApiPublique;
 
@@ -105,4 +106,26 @@ it('publishes the teams with their head counts, matched to the website by acrony
 
     $this->withToken($jeton)->getJson(route('public.equipes.show', 'EAD 1'))->assertOk()->assertJsonPath('data.nom', 'Biodiversité');
     $this->withToken($jeton)->getJson(route('public.equipes.show', 'EAD 404'))->assertNotFound();
+});
+
+it('publishes the domain, the programmes and the members of a team, without their contact details', function (): void {
+    $jeton = JetonApiPublique::generer();
+    $this->equipe->update(['domaine' => 'Sciences de la vie', 'description' => 'Étude du vivant.']);
+    $this->equipe->programmes()->create(['nom' => 'Écologie', 'description' => 'Milieux humides.', 'ordre' => 2]);
+    $this->equipe->programmes()->create(['nom' => 'Botanique', 'ordre' => 1]);
+    MembreEquipe::factory()->for($this->equipe, 'equipeAccueil')->membre()->create(['nom' => 'ZAFY Aina', 'titre' => 'Dr', 'email' => 'aina@exemple.mg', 'telephone' => '0340000000']);
+    MembreEquipe::factory()->for($this->equipe, 'equipeAccueil')->responsable()->create(['nom' => 'RAKOTO Jean', 'titre' => 'Pr', 'specialite' => 'Botanique']);
+
+    $reponse = $this->withToken($jeton)->getJson(route('public.equipes.show', 'EAD 1'))
+        ->assertOk()
+        ->assertJsonPath('data.domaine', 'Sciences de la vie')
+        ->assertJsonPath('data.description', 'Étude du vivant.')
+        ->assertJsonPath('data.programmes', [['nom' => 'Botanique', 'description' => null], ['nom' => 'Écologie', 'description' => 'Milieux humides.']])
+        ->assertJsonPath('data.membres.0', ['nom' => 'RAKOTO Jean', 'titre' => 'Pr', 'fonction' => 'responsable', 'fonction_libelle' => "Responsable de l'équipe", 'specialite' => 'Botanique', 'etablissement' => 'Université de Mahajanga'])
+        ->assertJsonPath('data.membres.1.nom', 'ZAFY Aina')
+        ->assertJsonMissingPath('data.membres.0.email')
+        ->assertJsonMissingPath('data.membres.1.telephone');
+
+    expect($reponse->getContent())->not->toContain('aina@exemple.mg')->not->toContain('0340000000');
+    $this->withToken($jeton)->getJson(route('public.equipes.index'))->assertJsonPath('data.0.membres.1.nom', 'ZAFY Aina');
 });

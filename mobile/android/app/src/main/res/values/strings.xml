@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">EDGVM</string>
+    <string name="title_activity_main">EDGVM</string>
+    <string name="package_name">mg.univmahajanga.edgvm</string>
+    <string name="custom_url_scheme">mg.univmahajanga.edgvm</string>
+</resources>

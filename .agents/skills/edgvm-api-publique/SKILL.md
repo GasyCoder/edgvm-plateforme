@@ -78,11 +78,16 @@ En place : `/doctorants` et `/equipes` (`App\Http\Controllers\ApiPublique`). Pas
 {
   "sigle": "EAD 1",
   "nom": "...",
+  "domaine": "... ou null",
   "description": "... ou null",
+  "programmes": [{ "nom": "...", "description": "... ou null" }],
+  "membres": [{ "nom": "RAKOTO Jean", "titre": "Pr", "fonction": "responsable | encadrant | membre", "fonction_libelle": "Responsable de l'équipe", "specialite": "... ou null", "etablissement": "... ou null" }],
   "effectifs": { "total": 5, "D1": 2, "D2": 1, "D3": 1 },
   "doctorants_annuaire": 2
 }
 ```
+
+La plateforme fait référence pour l'équipe : le site affiche son nom, son domaine, sa description, ses programmes et ses membres (responsable en premier, puis encadrants, puis membres). `GET /equipes` renvoie tout, triées par sigle (EAD 2 avant EAD 10) : le site n'appelle que cette liste. Les membres n'ont jamais d'e-mail ni de téléphone.
 
 `effectifs` compte les doctorants actifs (`total` inclut ceux sans inscription cette année ou en dérogation) ; `doctorants_annuaire` ceux qui figurent dans l'annuaire.
 
@@ -92,7 +97,7 @@ En place : `/doctorants` et `/equipes` (`App\Http\Controllers\ApiPublique`). Pas
 - L'annuaire ne liste que les doctorants dont le statut est `actif` et dont `visible_annuaire` vaut `true`.
 - Jamais exposés :
   - la date de naissance ;
-  - le téléphone et l'e-mail ;
+  - le téléphone et l'e-mail (doctorants et membres des équipes) ;
   - les paiements et la bourse ;
   - les dérogations et leurs motifs ;
   - les actes ;

@@ -7,7 +7,7 @@ import { Toaster } from '@/components/ui/sonner'
 const grandEcran = useMediaQuery('(min-width: 1280px)')
 const decalage = computed(() => grandEcran.value
   ? { bottom: '1.25rem', right: '1.25rem' }
-  : { bottom: 'calc(5rem + env(safe-area-inset-bottom))', right: '1rem', left: '1rem' })
+  : { bottom: 'calc(5rem + var(--bas-securise))', right: '1rem', left: '1rem' })
 </script>
 
 <template>

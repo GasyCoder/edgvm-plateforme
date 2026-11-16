@@ -12,7 +12,9 @@ useHead({ title: 'Connexion' })
 
 const route = useRoute()
 const { connecter, verifierDeuxFacteurs } = useAuth()
-const formulaire = reactive({ email: '', password: '', remember: false })
+/* Dans l'application du téléphone, on reste connecté : pas besoin de la case */
+const appMobile = estAppMobile()
+const formulaire = reactive({ email: '', password: '', remember: appMobile })
 const erreurs = ref<Record<string, string>>({})
 const envoi = ref(false)
 const voirMotDePasse = ref(false)
@@ -148,7 +150,7 @@ function revenir() {
         </div>
         <p v-if="erreurs.password" class="text-sm text-destructive">{{ erreurs.password }}</p>
       </div>
-      <div class="flex items-center gap-2">
+      <div v-if="!appMobile" class="flex items-center gap-2">
         <Checkbox id="remember" v-model="formulaire.remember" />
         <Label for="remember" class="font-normal text-slate-600">Rester connecté</Label>
       </div>

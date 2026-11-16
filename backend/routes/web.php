@@ -12,13 +12,15 @@ use App\Http\Controllers\Api\ReglagesActesController;
 use App\Http\Controllers\Api\ReglagesApplicationController;
 use App\Http\Controllers\InterfaceController;
 use App\Http\Controllers\VerificationActeController;
+use App\Http\Middleware\AutoriserLienTelechargement;
 use Illuminate\Support\Facades\Route;
 
 /*
  * Téléchargements ouverts par de simples liens (nouvel onglet, favori) : session classique,
  * sans dépendre de l'en-tête Referer qu'utilise Sanctum pour l'API.
+ * L'application mobile les ouvre dans le navigateur du téléphone avec un lien signé de quelques minutes.
  */
-Route::middleware('auth')->prefix('telechargements')->group(function (): void {
+Route::middleware([AutoriserLienTelechargement::class, 'auth'])->prefix('telechargements')->group(function (): void {
     Route::get('/doctorants.xlsx', [ImportExportDoctorantsController::class, 'exporterExcel'])->name('doctorants.export-excel');
     Route::get('/doctorants.csv', [ImportExportDoctorantsController::class, 'exporter'])->name('doctorants.export');
     Route::get('/candidats.{format}', [CandidatController::class, 'exporter'])->whereIn('format', ['xlsx', 'csv'])->name('candidats.export');

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>EDGVM</title>
+  <style>
+    :root { color-scheme: light dark; --fond: #fefbe8; --texte: #334155; --doux: #64748b; --vert: #14563f; }
+    @media (prefers-color-scheme: dark) { :root { --fond: #0f1a15; --texte: #e2e8f0; --doux: #94a3b8; --vert: #74d08d; } }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100dvh; display: grid; place-items: center; padding: 24px; background: var(--fond); color: var(--texte);
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; text-align: center; }
+    main { max-width: 340px; }
+    img { width: 72px; height: 72px; border-radius: 16px; }
+    h1 { font-size: 20px; margin: 18px 0 8px; }
+    p { color: var(--doux); line-height: 1.5; margin: 0 0 24px; }
+    button { border: 0; border-radius: 8px; background: var(--vert); color: #fff; font: inherit; font-weight: 600; padding: 12px 22px; }
+    @media (prefers-color-scheme: dark) { button { color: #0f1a15; } }
+  </style>
+</head>
+<body>
+  <main>
+    <img src="icone.png" alt="">
+    <h1>Pas de connexion</h1>
+    <p>La plateforme EDGVM n'est pas joignable. Vérifiez votre connexion Internet (données mobiles ou Wi-Fi), puis réessayez.</p>
+    <button type="button" onclick="reessayer()">Réessayer</button>
+  </main>
+  <script src="adresse.js"></script>
+  <script>
+    function reessayer() { window.location.href = window.ADRESSE_PLATEFORME || 'https://plateforme.edgvm.mahajanga-univ.mg'; }
+  </script>
+</body>
+</html>

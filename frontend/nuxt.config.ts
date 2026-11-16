@@ -24,9 +24,16 @@ export default defineNuxtConfig({
         { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
         { name: 'theme-color', content: '#14563f' },
         { name: 'robots', content: 'noindex,nofollow' },
+        /* Application installable depuis le navigateur (iPhone : Partager, puis « Sur l'écran d'accueil ») */
+        { name: 'mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-title', content: 'EDGVM' },
+        { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
       ],
       link: [
         { rel: 'icon', href: '/favicon.ico' },
+        { rel: 'manifest', href: '/manifest.json' },
+        { rel: 'apple-touch-icon', href: '/icones/apple-touch-icon.png' },
         { rel: 'preload', href: '/fonts/open-sans-latin.woff2', as: 'font', type: 'font/woff2', crossorigin: '' },
       ],
     },

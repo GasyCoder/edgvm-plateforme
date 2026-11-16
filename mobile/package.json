@@ -1,0 +1,19 @@
+{
+  "name": "edgvm-mobile",
+  "private": true,
+  "description": "Application Android (et iOS) de la plateforme EDGVM : affiche la plateforme en ligne dans une application installable.",
+  "scripts": {
+    "sync": "cap sync android",
+    "android": "cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/browser": "^8.0.5",
+    "@capacitor/core": "^8.6.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.2",
+    "typescript": "^6.0.3"
+  }
+}

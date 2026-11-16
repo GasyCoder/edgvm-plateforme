@@ -10,3 +10,6 @@ Thumbs.db
 /frontend/.output
 /frontend/.data
 /frontend/dist
+
+# Application mobile : APK construit (déposé sur le serveur à part)
+/backend/public/application/
