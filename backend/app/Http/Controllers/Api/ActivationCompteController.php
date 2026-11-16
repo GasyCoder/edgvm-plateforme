@@ -21,7 +21,7 @@ use function Illuminate\Support\defer;
 
 /**
  * « Créer mon accès » : un doctorant ou un membre d'équipe, déjà enregistré par la scolarité, active son compte
- * avec son e-mail ou son numéro : code à 4 chiffres (e-mail ou WhatsApp), puis choix du mot de passe.
+ * avec son e-mail ou son numéro : code à 4 chiffres envoyé à son adresse e-mail, puis choix du mot de passe.
  */
 class ActivationCompteController extends Controller
 {
@@ -66,7 +66,8 @@ class ActivationCompteController extends Controller
         $code = self::nouveauCode();
         $demande = CodeVerification::query()->create([
             'user_id' => $user->id,
-            'canal' => $parEmail ? 'email' : 'whatsapp',
+            /* Toujours par e-mail, même si la personne s'est identifiée par son numéro de téléphone. */
+            'canal' => 'email',
             'code_hash' => self::empreinte($code),
             'expire_le' => now()->addMinutes(CodeVerification::DUREE_MINUTES),
             'dernier_envoi_le' => now(),
@@ -182,29 +183,17 @@ class ActivationCompteController extends Controller
 
     /**
      * L'e-mail part juste après la réponse (le serveur SMTP peut prendre plusieurs secondes) : la page passe
-     * aussitôt à la saisie du code. WhatsApp, rapide, part tout de suite pour pouvoir proposer l'e-mail s'il échoue.
+     * aussitôt à la saisie du code.
      */
     private function envoyer(User $user, CodeVerification $demande, string $code): ?JsonResponse
     {
-        if ($demande->canal === 'email') {
-            defer(function () use ($user, $code): void {
-                try {
-                    $user->notifyNow(new CodeActivation($code, 'email'));
-                } catch (Throwable $exception) {
-                    Log::warning('Envoi du code d\'activation par e-mail impossible', ['message' => $exception->getMessage()]);
-                }
-            });
-
-            return null;
-        }
-
-        try {
-            $user->notifyNow(new CodeActivation($code, 'whatsapp'));
-        } catch (Throwable $exception) {
-            Log::warning('Envoi du code d\'activation par WhatsApp impossible', ['message' => $exception->getMessage()]);
-
-            return $this->refus('identifiant', 'L\'envoi par WhatsApp n\'a pas abouti. Essayez avec votre adresse e-mail.', 503);
-        }
+        defer(function () use ($user, $code): void {
+            try {
+                $user->notifyNow(new CodeActivation($code, 'email'));
+            } catch (Throwable $exception) {
+                Log::warning('Envoi du code d\'activation par e-mail impossible', ['message' => $exception->getMessage()]);
+            }
+        });
 
         return null;
     }
@@ -217,7 +206,7 @@ class ActivationCompteController extends Controller
         return [
             'demande' => $demande->id,
             'canal' => $demande->canal,
-            'destination' => $demande->canal === 'email' ? self::masquerEmail($user->email) : self::masquerNumero((string) $user->telephone),
+            'destination' => self::masquerEmail($user->email),
             'renvoyer_dans' => $demande->attenteRenvoi(),
             'expire_dans' => (int) max(0, now()->diffInSeconds($demande->expire_le, false)),
         ];
@@ -259,11 +248,5 @@ class ActivationCompteController extends Controller
         [$nom, $domaine] = explode('@', $email, 2) + [1 => ''];
 
         return mb_substr($nom, 0, 1).str_repeat('•', max(2, mb_strlen($nom) - 2)).(mb_strlen($nom) > 2 ? mb_substr($nom, -1) : '').'@'.$domaine;
-    }
-
-    /** « +261341234567 » devient « +261 34 •• ••• 67 » */
-    public static function masquerNumero(string $numero): string
-    {
-        return mb_strlen($numero) > 8 ? mb_substr($numero, 0, 4).' '.mb_substr($numero, 4, 2).' •• ••• '.mb_substr($numero, -2) : '••••';
     }
 }

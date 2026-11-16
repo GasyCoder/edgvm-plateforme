@@ -297,7 +297,7 @@ const recapitulatif = computed(() => [
             <ChampFormulaire libelle="Adresse e-mail" pour="email" :erreur="erreurs.email" requis>
               <Input id="email" v-model="formulaire.email" type="email" autocomplete="email" autofocus :aria-invalid="!!erreurs.email" />
             </ChampFormulaire>
-            <ChampFormulaire libelle="Téléphone" pour="telephone" :erreur="erreurs.telephone" aide="Pour les SMS et WhatsApp. Exemple : 034 12 345 67.">
+            <ChampFormulaire libelle="Téléphone" pour="telephone" :erreur="erreurs.telephone" aide="Pour joindre le doctorant ; il peut aussi servir à retrouver son compte. Exemple : 034 12 345 67.">
               <Input id="telephone" v-model="formulaire.telephone" type="tel" autocomplete="tel" :aria-invalid="!!erreurs.telephone" />
             </ChampFormulaire>
             <div v-if="!modification && !candidat" class="flex items-start justify-between gap-4 rounded-md border p-4 sm:col-span-2">

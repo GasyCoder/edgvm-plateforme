@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft, CircleAlert, Loader2, Mail, MessageCircle, RotateCw } from '@lucide/vue'
+import { ArrowLeft, CircleAlert, Loader2, Mail, Phone, RotateCw } from '@lucide/vue'
 import type { FetchError } from 'ofetch'
 import { toast } from 'vue-sonner'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -9,12 +9,12 @@ import type { Utilisateur } from '~/types'
 
 /*
  * « Créer mon accès » : un doctorant ou un membre d'équipe déjà enregistré par la scolarité saisit son e-mail
- * ou son numéro, reçoit un code à 4 chiffres (e-mail ou WhatsApp), puis choisit son mot de passe.
+ * ou son numéro, reçoit un code à 4 chiffres à son adresse e-mail, puis choisit son mot de passe.
  */
 definePageMeta({ layout: 'connexion' })
 useHead({ title: 'Créer mon accès' })
 
-interface Demande { demande: string, canal: 'email' | 'whatsapp', destination: string, renvoyer_dans: number, expire_dans: number }
+interface Demande { demande: string, canal: 'email', destination: string, renvoyer_dans: number, expire_dans: number }
 
 const etape = ref<1 | 2 | 3>(1)
 const identifiant = ref('')
@@ -116,7 +116,7 @@ const pretMotDePasse = computed(() => motDePasse.password.length >= 10 && /\p{L}
       <p class="text-sm leading-6 text-slate-400">
         <template v-if="etape === 1">Pour les doctorants et les membres des équipes d'accueil déjà enregistrés par la scolarité. Indiquez votre adresse e-mail ou votre numéro de téléphone.</template>
         <template v-else-if="etape === 2 && demande">
-          Un code à 4 chiffres vient d'être envoyé {{ demande.canal === 'email' ? 'par e-mail à' : 'par WhatsApp au' }}
+          Un code à 4 chiffres vient d'être envoyé par e-mail à
           <span class="font-semibold text-slate-600">{{ demande.destination }}</span>. Il est valable 10 minutes.
         </template>
         <template v-else>Bonjour {{ nom }}. Ce mot de passe vous servira à vous connecter, avec votre adresse e-mail.</template>
@@ -130,11 +130,11 @@ const pretMotDePasse = computed(() => motDePasse.password.length >= 10 && /\p{L}
     <form v-if="etape === 1" class="grid gap-5" novalidate @submit.prevent="demander">
       <ChampFormulaire libelle="Adresse e-mail ou numéro de téléphone" pour="identifiant" :erreur="erreurs.identifiant">
         <div class="relative">
-          <component :is="parTelephone ? MessageCircle : Mail" class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+          <component :is="parTelephone ? Phone : Mail" class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
           <Input id="identifiant" v-model="identifiant" type="text" autocomplete="username" autofocus class="h-11 pl-9" placeholder="votre.adresse@exemple.mg ou 034 12 345 67" :aria-invalid="!!erreurs.identifiant" />
         </div>
       </ChampFormulaire>
-      <p class="-mt-2 text-xs text-slate-400">{{ parTelephone ? 'Le code vous sera envoyé par WhatsApp.' : 'Le code vous sera envoyé par e-mail. Avec un numéro de téléphone, il arrive par WhatsApp.' }}</p>
+      <p class="-mt-2 text-xs text-slate-400">{{ parTelephone ? 'Le code sera envoyé à l\'adresse e-mail enregistrée par la scolarité pour ce numéro.' : 'Le code vous sera envoyé par e-mail.' }}</p>
       <Alert v-if="dejaActive">
         <CircleAlert />
         <AlertDescription>

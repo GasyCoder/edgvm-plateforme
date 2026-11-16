@@ -3,10 +3,7 @@
 use App\Models\CodeVerification;
 use App\Models\Doctorant;
 use App\Models\User;
-use App\Notifications\Canaux\CanalWhatsApp;
-use App\Notifications\Canaux\Contrats\EnvoiWhatsApp;
 use App\Notifications\CodeActivation;
-use Illuminate\Notifications\ChannelManager;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 
@@ -47,14 +44,13 @@ it('activates an account by e-mail: code, then password, then logged in', functi
     depuisInterface()->postJson(route('activation.terminer'), ['demande' => $demande, 'jeton' => $jeton, 'password' => 'Autre2026xx', 'password_confirmation' => 'Autre2026xx'])->assertUnprocessable();
 });
 
-it('sends the code by WhatsApp when the person gives a phone number', function (): void {
-    $membre = User::factory()->membreEad()->create(['telephone' => '+261341234567']);
+it('finds the account by phone number but always sends the code to its e-mail address', function (): void {
+    $membre = User::factory()->membreEad()->create(['telephone' => '+261341234567', 'email' => 'fanja.rabe@exemple.mg']);
 
     $this->postJson(route('activation.demande'), ['identifiant' => '034 12 345 67'])
-        ->assertCreated()->assertJsonPath('data.canal', 'whatsapp')->assertJsonPath('data.destination', '+261 34 •• ••• 67');
+        ->assertCreated()->assertJsonPath('data.canal', 'email')->assertJsonPath('data.destination', 'f••••••••e@exemple.mg');
 
-    Notification::assertSentTo($membre, CodeActivation::class, fn (CodeActivation $n, array $canaux) => $canaux === [CanalWhatsApp::class]
-        && $n->toWhatsApp($membre)['parametres'] === [$n->code]);
+    Notification::assertSentTo($membre, CodeActivation::class, fn (CodeActivation $n, array $canaux) => $canaux === ['mail']);
 });
 
 it('refuses unknown, deactivated, already activated, candidate and admin accounts', function (): void {
@@ -99,18 +95,12 @@ it('limits wrong codes, waits before a new code, and expires codes', function ()
     $this->postJson(route('activation.verifier'), ['demande' => $demande, 'code' => '1234'])->assertJsonValidationErrors(['code' => 'expiré']);
 });
 
-it('tells the person to use the e-mail when WhatsApp fails, and sends a validated template in production', function (): void {
+it('never contacts WhatsApp, even when it is configured', function (): void {
     config(['services.whatsapp' => ['pilote' => 'meta', 'jeton' => 'jeton-test', 'numero_id' => '123456', 'version' => 'v21.0', 'langue' => 'fr', 'modele_code' => 'code_verification']]);
-    Http::fake(['graph.facebook.com/*' => Http::sequence()->push(['messages' => [['id' => 'wamid.1']]])->push(['error' => 'refus'], 400)]);
-
-    app(EnvoiWhatsApp::class)->envoyer('+261341234567', 'code_verification', ['4821'], '4821 est votre code');
-    Http::assertSent(fn ($requete) => $requete->url() === 'https://graph.facebook.com/v21.0/123456/messages'
-        && $requete['to'] === '261341234567' && $requete['template']['name'] === 'code_verification'
-        && $requete['template']['components'][0]['parameters'][0]['text'] === '4821'
-        && $requete->hasHeader('Authorization', 'Bearer jeton-test'));
-
-    Notification::swap(new ChannelManager(app()));
+    Http::fake();
     User::factory()->membreEad()->create(['telephone' => '+261341234567']);
-    $this->postJson(route('activation.demande'), ['identifiant' => '0341234567'])->assertStatus(503)->assertJsonValidationErrors(['identifiant' => 'WhatsApp']);
-    expect(CodeVerification::query()->count())->toBe(0);
+
+    $this->postJson(route('activation.demande'), ['identifiant' => '0341234567'])->assertCreated()->assertJsonPath('data.canal', 'email');
+
+    Http::assertNothingSent();
 });
