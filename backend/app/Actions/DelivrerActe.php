@@ -31,6 +31,10 @@ class DelivrerActe
             throw new ActeImpossible("Le modèle « {$modele->nom} » est désactivé.");
         }
 
+        if ($doctorant->estCandidat()) {
+            throw new ActeImpossible('Candidat : aucun acte avant la décision du jury. L\'attestation d\'admission est délivrée à l\'admission.');
+        }
+
         $inscription = null;
 
         if ($modele->exige_inscription) {

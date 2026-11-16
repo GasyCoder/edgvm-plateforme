@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\DecisionCandidature;
 use App\Enums\StatutDoctorant;
 use App\Enums\StatutSeance;
 use App\Enums\TypeSeance;
@@ -54,6 +55,18 @@ class Seance extends Model
      */
     public function raisonInadmissible(Doctorant $doctorant): ?string
     {
+        if ($this->pourCandidats()) {
+            return match (true) {
+                ! $doctorant->estCandidat() => 'Déjà doctorant : seuls les candidats présentent leur projet.',
+                $doctorant->decision_candidature === DecisionCandidature::NonAdmis => 'Candidature non retenue.',
+                default => null,
+            };
+        }
+
+        if ($doctorant->estCandidat()) {
+            return 'Candidat : il passe d\'abord à une présentation de projet de thèse.';
+        }
+
         if ($doctorant->statut !== StatutDoctorant::Actif) {
             return 'Dossier '.mb_strtolower($doctorant->statut->libelle()).'.';
         }
@@ -98,6 +111,12 @@ class Seance extends Model
         return str_starts_with(mb_strtolower($this->titre), mb_strtolower($this->type->libelle()))
             ? $this->titre
             : $this->type->libelle().', '.$this->titre;
+    }
+
+    /** Séance de sélection : les candidats présentent leur projet de thèse devant le jury. */
+    public function pourCandidats(): bool
+    {
+        return $this->type === TypeSeance::PresentationProjet;
     }
 
     public function estModifiable(): bool

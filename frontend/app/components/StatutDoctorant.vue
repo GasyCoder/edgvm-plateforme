@@ -2,6 +2,7 @@
 /** Statut en texte coloré, comme la colonne « Status » de DashWin. */
 const props = defineProps<{ statut: string, libelle: string }>()
 const couleur = computed(() => ({
+  candidat: 'text-sun-700',
   actif: 'text-leaf-600',
   suspendu: 'text-sun-600',
   abandon: 'text-destructive',

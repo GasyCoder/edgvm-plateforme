@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\DecisionCandidature;
 use App\Enums\RoleIntervenant;
 use Database\Factories\PassageFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -15,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * Passage d'un doctorant lors d'une séance : créneau, sujet présenté, modérateurs et jury.
  */
 #[Table('passages')]
-#[Fillable(['doctorant_id', 'debut', 'fin', 'sujet', 'ordre', 'convoque_le', 'convocation_empreinte'])]
+#[Fillable(['doctorant_id', 'debut', 'fin', 'sujet', 'decision', 'decision_observation', 'decision_notifiee_le', 'ordre', 'convoque_le', 'convocation_empreinte'])]
 class Passage extends Model
 {
     /** @use HasFactory<PassageFactory> */
@@ -89,6 +90,8 @@ class Passage extends Model
             'fin' => 'immutable_datetime',
             'ordre' => 'integer',
             'convoque_le' => 'datetime',
+            'decision' => DecisionCandidature::class,
+            'decision_notifiee_le' => 'datetime',
         ];
     }
 }

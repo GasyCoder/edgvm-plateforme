@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Actions\CreerDoctorant;
+use App\Enums\StatutDoctorant;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DoctorantRequest;
 use App\Http\Resources\DoctorantResource;
@@ -43,7 +44,11 @@ class DoctorantController extends Controller
             ->with(['user', 'equipeAccueil', 'inscriptionCourante.anneeUniversitaire'])
             ->recherche($request->string('recherche')->trim()->toString())
             ->when($request->integer('equipe'), fn ($requete, int $equipe) => $requete->where('equipe_accueil_id', $equipe))
-            ->when($request->string('statut')->toString(), fn ($requete, string $statut) => $requete->where('statut', $statut))
+            ->when(
+                $request->string('statut')->toString(),
+                fn ($requete, string $statut) => $requete->where('statut', $statut),
+                fn ($requete) => $requete->where('statut', '!=', StatutDoctorant::Candidat->value),
+            )
             ->niveauCourant($avecFiltreNiveau ? ($request->string('niveau')->toString() ?: null) : null)
             ->when($request->filled('boursier'), fn ($requete) => $requete->where('est_boursier', $request->boolean('boursier')))
             ->when($request->boolean('sans_inscription'), fn ($requete) => $requete->whereDoesntHave('inscriptionCourante'))
@@ -80,7 +85,7 @@ class DoctorantController extends Controller
 
         $doctorant = SituationFinanciere::avecTotaux(Doctorant::query()->whereKey($doctorant->id))->firstOrFail();
 
-        return new DoctorantResource($doctorant->load(['user', 'equipeAccueil', 'inscriptions.anneeUniversitaire', 'inscriptions.frais', 'inscriptionCourante.anneeUniversitaire']));
+        return new DoctorantResource($doctorant->load(['user', 'equipeAccueil', 'inscriptions.anneeUniversitaire', 'inscriptions.frais', 'inscriptionCourante.anneeUniversitaire', 'passages.seance']));
     }
 
     /**

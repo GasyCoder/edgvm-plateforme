@@ -35,6 +35,7 @@ class SeanceResource extends JsonResource
             'pause' => $this->pause,
             'annee_universitaire_id' => $this->annee_universitaire_id,
             'exige_paiement_solde' => $this->exige_paiement_solde,
+            'pour_candidats' => $this->pourCandidats(),
             'statut' => $this->statut->value,
             'statut_libelle' => $this->statut->libelle(),
             'convocations_envoyees_le' => $this->convocations_envoyees_le?->toIso8601String(),

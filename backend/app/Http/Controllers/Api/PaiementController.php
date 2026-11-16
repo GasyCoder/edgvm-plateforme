@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Actions\AnnulerPaiement;
 use App\Actions\EnregistrerPaiement;
+use App\Enums\StatutDoctorant;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PaiementRequest;
 use App\Http\Resources\PaiementResource;
@@ -178,7 +179,7 @@ class PaiementController extends Controller
      */
     private function requeteSituation(Request $request): Builder
     {
-        return SituationFinanciere::avecTotaux(Doctorant::query())
+        return SituationFinanciere::avecTotaux(Doctorant::query()->where('statut', '!=', StatutDoctorant::Candidat->value))
             ->when($request->filled('ids'), fn (Builder $q) => $q->whereIn('uuid', (array) $request->input('ids')))
             ->recherche($request->string('recherche')->trim()->toString())
             ->when($request->integer('equipe'), fn (Builder $q, int $equipe) => $q->where('equipe_accueil_id', $equipe))

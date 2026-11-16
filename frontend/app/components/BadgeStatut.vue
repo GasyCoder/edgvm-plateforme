@@ -2,6 +2,7 @@
 const props = defineProps<{ statut: string, libelle: string }>()
 
 const COULEURS: Record<string, string> = {
+  candidat: 'bg-sun-100 text-sun-700',
   actif: 'bg-leaf-50 text-leaf-600',
   validee: 'bg-leaf-50 text-leaf-600',
   en_attente: 'bg-sun-50 text-sun-700',

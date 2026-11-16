@@ -107,6 +107,22 @@ class ImportExportDoctorantsController extends Controller
     }
 
     /**
+     * Modèle d'import des candidats : sans niveau ni matricule (attribués à l'admission).
+     */
+    public function modeleCandidats(Request $request): StreamedResponse
+    {
+        $this->authorize('create', Doctorant::class);
+
+        return FichierCsv::telecharger('modele-import-candidats.csv', [
+            'Nom', 'Prénoms', 'Genre', 'Date de naissance', 'Lieu de naissance', 'Nationalité', 'CIN ou passeport', 'Adresse',
+            'E-mail', 'Téléphone', 'Équipe', 'Sujet de thèse', 'Directeur de thèse', 'Co-directeur', 'Boursier',
+        ], [[
+            'RAKOTO', 'Jean Marie', 'M', '25/03/1990', 'Mahajanga', 'Malagasy', '401011012345', 'Lot II A 12 Mahajanga',
+            'jean.rakoto@exemple.mg', '034 12 345 67', 'EAD 1', 'Projet de thèse', 'Pr RABE Hery', '', 'Non',
+        ]]);
+    }
+
+    /**
      * Avec « simulation », rien n'est enregistré : la réponse liste les lignes valides et les erreurs.
      * Sinon, seules les lignes valides sont importées.
      */
@@ -114,12 +130,13 @@ class ImportExportDoctorantsController extends Controller
     {
         $this->authorize('create', Doctorant::class);
         $request->validate(
-            ['fichier' => ['required', 'file', 'mimes:csv,txt', 'max:2048'], 'simulation' => ['boolean'], 'envoyer_invitation' => ['boolean']],
+            ['fichier' => ['required', 'file', 'mimes:csv,txt', 'max:2048'], 'simulation' => ['boolean'], 'envoyer_invitation' => ['boolean'], 'candidats' => ['boolean']],
             ['fichier.mimes' => 'Le fichier doit être au format CSV (Excel : Enregistrer sous, CSV UTF-8).', 'fichier.max' => 'Le fichier ne doit pas dépasser 2 Mo.'],
             ['fichier' => 'fichier'],
         );
 
-        $analyse = $analyser($request->file('fichier')->getRealPath());
+        $candidats = $request->boolean('candidats');
+        $analyse = $analyser($request->file('fichier')->getRealPath(), $candidats);
 
         if ($analyse['erreur_fichier']) {
             return response()->json(['message' => $analyse['erreur_fichier'], 'errors' => ['fichier' => [$analyse['erreur_fichier']]]], 422);
@@ -131,7 +148,7 @@ class ImportExportDoctorantsController extends Controller
 
         if (! $request->boolean('simulation')) {
             foreach ($valides as $ligne) {
-                $creerDoctorant($ligne['donnees'], $request->boolean('envoyer_invitation'));
+                $creerDoctorant($ligne['donnees'], ! $candidats && $request->boolean('envoyer_invitation'));
                 $crees++;
             }
         }

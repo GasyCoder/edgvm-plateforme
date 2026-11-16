@@ -82,6 +82,23 @@ class NumeroMatricule
         return null;
     }
 
+    /**
+     * Numéro provisoire d'un candidat (CAND-2026-0001) : le vrai matricule n'est attribué qu'à l'admission.
+     */
+    public static function provisoire(): string
+    {
+        $prefixe = 'CAND-'.now()->year.'-';
+        $dernier = Doctorant::query()->where('matricule', 'like', $prefixe.'%')->pluck('matricule')
+            ->map(fn (string $matricule) => (int) substr($matricule, strlen($prefixe)))->max() ?? 0;
+
+        return $prefixe.str_pad((string) ($dernier + 1), 4, '0', STR_PAD_LEFT);
+    }
+
+    public static function estProvisoire(string $matricule): bool
+    {
+        return str_starts_with($matricule, 'CAND-');
+    }
+
     public static function annee(string $source): int
     {
         return $source === 'universitaire'

@@ -56,11 +56,12 @@ async function enregistrer() {
         <Input id="email" v-model="formulaire.email" type="email" autocomplete="username" required />
       </ChampFormulaire>
       <ChampFormulaire libelle="Mot de passe" pour="password" :erreur="erreurs.password">
-        <Input id="password" v-model="formulaire.password" type="password" autocomplete="new-password" required autofocus />
+        <ChampMotDePasse id="password" v-model="formulaire.password" autocomplete="new-password" :invalide="!!erreurs.password" />
       </ChampFormulaire>
       <ChampFormulaire libelle="Confirmer le mot de passe" pour="password_confirmation">
-        <Input id="password_confirmation" v-model="formulaire.password_confirmation" type="password" autocomplete="new-password" required />
+        <ChampMotDePasse id="password_confirmation" v-model="formulaire.password_confirmation" autocomplete="new-password" />
       </ChampFormulaire>
+      <ReglesMotDePasse :mot-de-passe="formulaire.password" :confirmation="formulaire.password_confirmation" />
       <Button type="submit" size="lg" class="w-full" :disabled="envoi">
         <Loader2 v-if="envoi" class="animate-spin" />
         Enregistrer le mot de passe

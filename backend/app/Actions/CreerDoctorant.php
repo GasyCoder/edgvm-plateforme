@@ -8,6 +8,7 @@ use App\Enums\StatutInscription;
 use App\Enums\TypeInscription;
 use App\Models\Doctorant;
 use App\Models\User;
+use App\Support\NumeroMatricule;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -25,23 +26,32 @@ class CreerDoctorant
      */
     public function __invoke(array $donnees, bool $envoyerInvitation = true): Doctorant
     {
-        $doctorant = DB::transaction(function () use ($donnees): Doctorant {
+        $candidat = ($donnees['statut'] ?? null) === StatutDoctorant::Candidat->value;
+        $envoyerInvitation = $envoyerInvitation && ! $candidat;
+
+        $doctorant = DB::transaction(function () use ($donnees, $candidat): Doctorant {
+            /* Un candidat n'a pas encore accès à la plateforme : son compte s'active à l'admission. */
             $user = User::query()->create([
                 'name' => trim(mb_strtoupper($donnees['nom']).' '.($donnees['prenoms'] ?? '')),
                 'email' => $donnees['email'],
                 'telephone' => $donnees['telephone'] ?? null,
                 'password' => Str::password(32),
                 'role' => RoleUtilisateur::Doctorant,
-                'actif' => true,
+                'actif' => ! $candidat,
             ]);
 
             $doctorant = $user->doctorant()->create([
                 ...Arr::except($donnees, ['email', 'telephone', 'inscription', 'envoyer_invitation', 'matricule', 'statut']),
-                'matricule' => filled($donnees['matricule'] ?? null) ? $donnees['matricule'] : Doctorant::prochainMatricule(),
+                'matricule' => match (true) {
+                    filled($donnees['matricule'] ?? null) => $donnees['matricule'],
+                    $candidat => NumeroMatricule::provisoire(),
+                    default => Doctorant::prochainMatricule(),
+                },
                 'statut' => $donnees['statut'] ?? StatutDoctorant::Actif->value,
+                'candidature_le' => $candidat ? now()->toDateString() : null,
             ]);
 
-            if (filled($donnees['inscription'] ?? null)) {
+            if (filled($donnees['inscription'] ?? null) && ! $candidat) {
                 $inscription = $doctorant->inscriptions()->create([
                     ...$donnees['inscription'],
                     'type' => TypeInscription::Premiere,

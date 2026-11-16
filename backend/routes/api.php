@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\ActeController;
 use App\Http\Controllers\Api\AnneeUniversitaireController;
 use App\Http\Controllers\Api\ApiPubliqueController;
 use App\Http\Controllers\Api\AuthentificationController;
+use App\Http\Controllers\Api\CandidatController;
 use App\Http\Controllers\Api\CompteController;
 use App\Http\Controllers\Api\DoctorantController;
 use App\Http\Controllers\Api\EquipeAccueilController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\Api\ModeleActeController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PaiementController;
 use App\Http\Controllers\Api\PhotoDoctorantController;
+use App\Http\Controllers\Api\PhotoUtilisateurController;
 use App\Http\Controllers\Api\PieceJointeController;
 use App\Http\Controllers\Api\ProgrammeDoctoralController;
 use App\Http\Controllers\Api\ReglagesActesController;
@@ -44,6 +46,8 @@ Route::get('/application', [ReglagesApplicationController::class, 'public'])->na
 Route::middleware(['auth:sanctum', ModeMaintenance::class])->group(function (): void {
     Route::post('/deconnexion', [AuthentificationController::class, 'deconnexion'])->name('deconnexion');
     Route::get('/moi', [AuthentificationController::class, 'moi'])->name('moi');
+    Route::post('/moi/photo', [PhotoUtilisateurController::class, 'enregistrerMienne'])->name('moi.photo');
+    Route::delete('/moi/photo', [PhotoUtilisateurController::class, 'supprimerMienne'])->name('moi.photo.supprimer');
     Route::put('/moi/mot-de-passe', [AuthentificationController::class, 'modifierMotDePasse'])->name('moi.mot-de-passe');
 
     Route::get('/tableau-de-bord', TableauDeBordController::class)->name('tableau-de-bord');
@@ -74,6 +78,12 @@ Route::middleware(['auth:sanctum', ModeMaintenance::class])->group(function (): 
     Route::get('/modeles-actes/disponibles', [ModeleActeController::class, 'disponibles'])->name('modeles-actes.disponibles');
     Route::post('/modeles-actes/apercu', [ModeleActeController::class, 'apercu'])->name('modeles-actes.apercu');
     Route::apiResource('modeles-actes', ModeleActeController::class)->parameters(['modeles-actes' => 'modele']);
+    Route::get('/candidats', [CandidatController::class, 'index'])->name('candidats.index');
+    Route::get('/candidats/compteurs', [CandidatController::class, 'compteurs'])->name('candidats.compteurs');
+    Route::post('/doctorants/{doctorant}/admettre', [CandidatController::class, 'admettre'])->name('candidats.admettre');
+    Route::put('/passages/{passage}/decision', [SeanceController::class, 'decider'])->name('passages.decision');
+    Route::post('/seances/{seance}/admettre', [SeanceController::class, 'admettre'])->name('seances.admettre');
+    Route::post('/seances/{seance}/informer', [SeanceController::class, 'informer'])->name('seances.informer');
     Route::apiResource('seances', SeanceController::class);
     Route::post('/seances/{seance}/annuler', [SeanceController::class, 'annuler'])->name('seances.annuler');
     Route::get('/seances/{seance}/candidats', [SeanceController::class, 'candidats'])->name('seances.candidats');
@@ -123,6 +133,8 @@ Route::middleware(['auth:sanctum', ModeMaintenance::class])->group(function (): 
     Route::post('/notifications/{id}/lue', [NotificationController::class, 'lue'])->name('notifications.lue');
 
     Route::apiResource('comptes', CompteController::class)->only(['index', 'store', 'update']);
+    Route::post('/comptes/{compte}/photo', [PhotoUtilisateurController::class, 'enregistrerCompte'])->name('comptes.photo');
+    Route::delete('/comptes/{compte}/photo', [PhotoUtilisateurController::class, 'supprimerCompte'])->name('comptes.photo.supprimer');
     Route::post('/comptes/{compte}/lien-acces', [CompteController::class, 'lienAcces'])->name('comptes.lien-acces');
 });
 

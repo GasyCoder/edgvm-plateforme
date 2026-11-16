@@ -85,19 +85,19 @@ async function ajouter() {
   <Dialog v-model:open="ouvert">
     <DialogContent class="flex max-h-[90dvh] flex-col sm:max-w-3xl">
       <DialogHeader>
-        <DialogTitle>Programmer des doctorants</DialogTitle>
+        <DialogTitle>{{ seance.pour_candidats ? 'Programmer des candidats' : 'Programmer des doctorants' }}</DialogTitle>
         <DialogDescription>
           Ils passent à la suite des passages déjà prévus ({{ seance.duree_passage }} min chacun{{ seance.pause ? `, ${seance.pause} min de pause` : '' }}).
           <template v-if="seance.exige_paiement_solde"> Réservé aux doctorants à jour de paiement.</template>
         </DialogDescription>
       </DialogHeader>
 
-      <div class="grid grid-cols-2 gap-2 sm:grid-cols-[minmax(0,1fr)_9rem_9rem]">
+      <div class="grid grid-cols-2 gap-2" :class="seance.pour_candidats ? 'sm:grid-cols-[minmax(0,1fr)_9rem]' : 'sm:grid-cols-[minmax(0,1fr)_9rem_9rem]'">
         <div class="relative col-span-2 sm:col-span-1">
           <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
           <Input v-model="filtres.recherche" type="search" placeholder="Nom ou matricule" class="pl-9" aria-label="Rechercher" />
         </div>
-        <Select v-model="filtres.niveau">
+        <Select v-if="!seance.pour_candidats" v-model="filtres.niveau">
           <SelectTrigger class="w-full" aria-label="Niveau"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="tous">Tous niveaux</SelectItem>
@@ -140,13 +140,13 @@ async function ajouter() {
               <p v-else-if="c.sujet" class="line-clamp-1 text-xs text-slate-400">{{ c.sujet }}</p>
             </div>
           </li>
-          <li v-if="!candidats.length && !chargement" class="px-3 py-6 text-center text-sm text-slate-400">Aucun doctorant actif avec ces filtres.</li>
+          <li v-if="!candidats.length && !chargement" class="px-3 py-6 text-center text-sm text-slate-400">{{ seance.pour_candidats ? 'Aucun candidat avec ces filtres. Enregistrez-les dans Candidats.' : 'Aucun doctorant actif avec ces filtres.' }}</li>
         </ul>
       </div>
 
       <DialogFooter>
         <Button variant="outline" @click="ouvert = false">Fermer</Button>
-        <Button :disabled="envoi || !selection.length" @click="ajouter"><Loader2 v-if="envoi" class="animate-spin" /><UserPlus v-else /> Programmer {{ selection.length || '' }} doctorant{{ selection.length > 1 ? 's' : '' }}</Button>
+        <Button :disabled="envoi || !selection.length" @click="ajouter"><Loader2 v-if="envoi" class="animate-spin" /><UserPlus v-else /> Programmer {{ selection.length || '' }} {{ seance.pour_candidats ? 'candidat' : 'doctorant' }}{{ selection.length > 1 ? 's' : '' }}</Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>

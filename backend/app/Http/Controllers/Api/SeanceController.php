@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\AdmettreCandidat;
+use App\Enums\DecisionCandidature;
 use App\Enums\RoleIntervenant;
 use App\Enums\StatutDoctorant;
 use App\Enums\StatutSeance;
+use App\Exceptions\AdmissionImpossible;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SeanceRequest;
 use App\Http\Resources\SeanceResource;
@@ -15,6 +18,7 @@ use App\Models\Seance;
 use App\Models\User;
 use App\Notifications\ConvocationIntervenant;
 use App\Notifications\ConvocationPassage;
+use App\Notifications\DecisionCandidature as DecisionCandidatureNotification;
 use App\Support\Disponibilites;
 use App\Support\SituationFinanciere;
 use Carbon\CarbonImmutable;
@@ -130,10 +134,10 @@ class SeanceController extends Controller
 
         $doctorants = SituationFinanciere::avecTotaux(Doctorant::query())
             ->with(['equipeAccueil', 'inscriptionCourante'])
-            ->where('statut', StatutDoctorant::Actif->value)
+            ->where('statut', $seance->pourCandidats() ? StatutDoctorant::Candidat->value : StatutDoctorant::Actif->value)
             ->recherche($request->string('recherche')->trim()->toString())
             ->when($request->integer('equipe'), fn (Builder $q, int $equipe) => $q->where('equipe_accueil_id', $equipe))
-            ->niveauCourant($request->string('niveau')->toString() ?: null)
+            ->niveauCourant($seance->pourCandidats() ? null : ($request->string('niveau')->toString() ?: null))
             ->orderBy('nom')->orderBy('prenoms')
             ->limit(300)
             ->get();
@@ -142,7 +146,7 @@ class SeanceController extends Controller
             'id' => $doctorant->uuid,
             'nom_complet' => $doctorant->nomComplet(),
             'matricule' => $doctorant->matricule,
-            'niveau' => $doctorant->inscriptionCourante?->niveauAffiche(),
+            'niveau' => $doctorant->estCandidat() ? ($doctorant->decision_candidature?->libelle() ?? 'Candidat') : $doctorant->inscriptionCourante?->niveauAffiche(),
             'equipe' => $doctorant->equipeAccueil?->sigle,
             'sujet' => $doctorant->sujet_these,
             'deja_programme' => in_array($doctorant->id, $dejaProgrammes, true),
@@ -413,6 +417,85 @@ class SeanceController extends Controller
             'envoyes' => $passages->count(),
             'sans_email' => $sansEmail,
         ]);
+    }
+
+    /**
+     * Décision du jury pour un candidat (présentation de projet de thèse) : admis, ajourné, non admis, ou rien.
+     */
+    public function decider(Request $request, Passage $passage): JsonResponse
+    {
+        $passage->loadMissing(['seance', 'doctorant']);
+        $seance = $passage->seance;
+        $this->authorize('update', $seance);
+        abort_unless($seance->pourCandidats(), 422, 'Les décisions se prennent lors des présentations de projet de thèse.');
+        abort_unless($passage->doctorant->estCandidat(), 422, 'Ce candidat est déjà admis : la décision ne change plus.');
+        $donnees = $request->validate([
+            'decision' => ['nullable', Rule::enum(DecisionCandidature::class)],
+            'observation' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $passage->update(['decision' => $donnees['decision'] ?? null, 'decision_observation' => $donnees['observation'] ?? null, 'decision_notifiee_le' => null]);
+        $passage->doctorant->update(['decision_candidature' => $donnees['decision'] ?? null]);
+
+        return response()->json(['data' => new SeanceResource($seance->refresh()->load(self::RELATIONS)), 'message' => 'Décision enregistrée.']);
+    }
+
+    /**
+     * Admet d'un coup tous les candidats déclarés admis dans cette séance (et pas encore admis).
+     */
+    public function admettre(Request $request, Seance $seance, AdmettreCandidat $admettre): JsonResponse
+    {
+        $this->authorize('update', $seance);
+        abort_unless($seance->pourCandidats(), 422, 'Seules les présentations de projet de thèse admettent des candidats.');
+        $request->validate(['passages' => ['nullable', 'array'], 'passages.*' => ['integer']]);
+
+        $passages = $seance->passages()->with('doctorant.user')
+            ->where('decision', DecisionCandidature::Admis->value)
+            ->whereHas('doctorant', fn (Builder $q) => $q->where('statut', StatutDoctorant::Candidat->value))
+            ->when($request->filled('passages'), fn (Builder $q) => $q->whereIn('id', $request->input('passages')))
+            ->get();
+
+        $admis = [];
+        $refus = [];
+        foreach ($passages as $passage) {
+            try {
+                $resultat = $admettre($passage->doctorant, $request->user(), $passage->setRelation('seance', $seance));
+                $admis[] = ['doctorant' => $resultat['doctorant']->nomComplet(), 'matricule' => $resultat['doctorant']->matricule, 'acte' => $resultat['acte']?->numero];
+            } catch (AdmissionImpossible $exception) {
+                $refus[] = ['doctorant' => $passage->doctorant->nomComplet(), 'raison' => $exception->getMessage()];
+            }
+        }
+
+        return response()->json([
+            'data' => new SeanceResource($seance->refresh()->load(self::RELATIONS)),
+            'admis' => $admis,
+            'refus' => $refus,
+            'message' => $admis ? count($admis).' candidat(s) admis : inscrits en D1, attestation délivrée et notifiés.' : 'Aucun candidat à admettre.',
+        ], $admis || $refus ? 200 : 422);
+    }
+
+    /**
+     * Informe par e-mail les candidats ajournés ou non admis, pas encore informés.
+     */
+    public function informer(Seance $seance): JsonResponse
+    {
+        $this->authorize('update', $seance);
+        abort_unless($seance->pourCandidats(), 422, 'Seules les présentations de projet de thèse ont des décisions.');
+
+        $passages = $seance->passages()->with('doctorant.user')
+            ->whereIn('decision', [DecisionCandidature::Ajourne->value, DecisionCandidature::NonAdmis->value])
+            ->whereNull('decision_notifiee_le')
+            ->get();
+
+        foreach ($passages as $passage) {
+            $passage->doctorant->user?->notify(new DecisionCandidatureNotification($passage->setRelation('seance', $seance)));
+            $passage->update(['decision_notifiee_le' => now()]);
+        }
+
+        return response()->json([
+            'data' => new SeanceResource($seance->refresh()->load(self::RELATIONS)),
+            'message' => $passages->isEmpty() ? 'Aucun candidat à informer.' : $passages->count().' candidat(s) informé(s) par e-mail.',
+        ], $passages->isEmpty() ? 422 : 200);
     }
 
     /**

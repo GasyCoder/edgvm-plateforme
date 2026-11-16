@@ -125,7 +125,7 @@ async function envoyerLien(compte: Compte) {
             <tr v-for="compte in data.data" :key="compte.id" class="group transition-colors hover:bg-gray-50">
               <td :class="td">
                 <div class="flex min-w-0 items-center gap-3">
-                  <span class="flex size-10 flex-none items-center justify-center rounded-full text-sm font-semibold text-white" :class="couleurAvatar(compte.name)">{{ initiales(compte.name) }}</span>
+                  <AvatarCompte :nom="compte.name" :photo-url="compte.photo_url" class="size-10 text-sm" />
                   <span class="min-w-0">
                     <span class="block max-w-[10rem] truncate text-sm font-semibold text-slate-700 sm:max-w-xs">{{ compte.name }}</span>
                     <span class="block max-w-[10rem] truncate text-xs text-slate-400 sm:max-w-xs">{{ compte.email }}</span>
@@ -164,6 +164,7 @@ async function envoyerLien(compte: Compte) {
           <DialogDescription>{{ modifie?.role === 'doctorant' ? 'Compte de doctorant : le rôle ne change pas.' : 'Administration de l\'École ou membre d\'une équipe d\'accueil.' }}</DialogDescription>
         </DialogHeader>
         <form id="form-compte" class="grid gap-4" novalidate @submit.prevent="enregistrer">
+          <ChampAvatar v-if="modifie" :nom="modifie.name" :photo-url="modifie.photo_url" :adresse="`/api/comptes/${modifie.id}/photo`" class="rounded-md border border-dashed border-gray-300 p-3" @change="refresh()" />
           <ChampFormulaire libelle="Nom" pour="compte-nom" :erreur="erreurs.name" requis>
             <Input id="compte-nom" v-model="formulaire.name" placeholder="Pr RAKOTO Jean" />
           </ChampFormulaire>

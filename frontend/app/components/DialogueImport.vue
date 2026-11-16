@@ -16,8 +16,11 @@ interface Rapport {
 }
 
 /**
- * Import de doctorants depuis un fichier CSV : vérification d'abord (rien n'est enregistré), puis import des lignes valides.
+ * Import de doctorants (ou de candidats) depuis un fichier CSV : vérification d'abord (rien n'est enregistré),
+ * puis import des lignes valides. Un candidat n'a ni niveau, ni matricule, ni accès avant son admission.
  */
+const props = defineProps<{ candidats?: boolean }>()
+const nom = (nombre: number) => `${props.candidats ? 'candidat' : 'doctorant'}${nombre > 1 ? 's' : ''}`
 const ouvert = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ importe: [] }>()
 
@@ -53,14 +56,15 @@ async function envoyer(simulation: boolean) {
   const donnees = new FormData()
   donnees.append('fichier', fichier.value)
   donnees.append('simulation', simulation ? '1' : '0')
-  donnees.append('envoyer_invitation', invitation.value ? '1' : '0')
+  donnees.append('envoyer_invitation', invitation.value && !props.candidats ? '1' : '0')
+  donnees.append('candidats', props.candidats ? '1' : '0')
   try {
     const reponse = await api<{ data: Rapport }>('/api/doctorants/import', { method: 'POST', body: donnees })
     if (simulation) {
       rapport.value = reponse.data
     }
     else {
-      toast.success(`${reponse.data.crees} doctorant${reponse.data.crees > 1 ? 's' : ''} importé${reponse.data.crees > 1 ? 's' : ''}.`)
+      toast.success(`${reponse.data.crees} ${nom(reponse.data.crees)} importé${reponse.data.crees > 1 ? 's' : ''}.`)
       ouvert.value = false
       emit('importe')
     }
@@ -78,14 +82,15 @@ async function envoyer(simulation: boolean) {
   <Dialog v-model:open="ouvert">
     <DialogContent class="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
       <DialogHeader>
-        <DialogTitle>Importer des doctorants</DialogTitle>
+        <DialogTitle>{{ candidats ? 'Importer des candidats' : 'Importer des doctorants' }}</DialogTitle>
         <DialogDescription>
           Fichier CSV (dans Excel : Fichier, Enregistrer sous, « CSV UTF-8 »). Colonnes obligatoires : Nom, E-mail, Équipe.
+          <template v-if="candidats"> Les colonnes Niveau et Matricule sont ignorées : un candidat reçoit un numéro provisoire, et son matricule à l'admission.</template>
         </DialogDescription>
       </DialogHeader>
 
       <div class="grid gap-4">
-        <a href="/telechargements/modele-import-doctorants.csv" class="inline-flex w-fit items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-700">
+        <a :href="candidats ? '/telechargements/modele-import-candidats.csv' : '/telechargements/modele-import-doctorants.csv'" class="inline-flex w-fit items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-700">
           <Download class="size-4" /> Télécharger le modèle à remplir
         </a>
 
@@ -107,7 +112,7 @@ async function envoyer(simulation: boolean) {
 
         <p v-if="erreur" class="flex gap-2 rounded-md bg-red-50 p-3 text-sm text-destructive"><TriangleAlert class="size-4 flex-none" />{{ erreur }}</p>
 
-        <div class="flex items-start justify-between gap-4 rounded-md border p-4">
+        <div v-if="!candidats" class="flex items-start justify-between gap-4 rounded-md border p-4">
           <div>
             <Label for="import-invitation">Envoyer le lien d'accès</Label>
             <p class="mt-1 text-xs text-slate-400">Chaque doctorant importé reçoit un e-mail pour choisir son mot de passe.</p>
@@ -150,7 +155,7 @@ async function envoyer(simulation: boolean) {
         </Button>
         <Button v-else :disabled="!rapport.valides || envoi" @click="envoyer(false)">
           <Loader2 v-if="envoi" class="animate-spin" />
-          Importer {{ rapport.valides }} doctorant{{ rapport.valides > 1 ? 's' : '' }}
+          Importer {{ rapport.valides }} {{ nom(rapport.valides) }}
         </Button>
       </DialogFooter>
     </DialogContent>

@@ -48,6 +48,7 @@ export interface Utilisateur {
   telephone: string | null
   role: Role
   role_libelle: string
+  photo_url: string | null
   doctorant_id: string | null
   equipes: Equipe[]
 }
@@ -57,6 +58,7 @@ export interface Compte {
   name: string
   email: string
   telephone: string | null
+  photo_url?: string | null
   role: Role
   role_libelle: string
   actif: boolean
@@ -113,8 +115,10 @@ export interface Doctorant {
   directeur_these?: string | null
   co_directeur?: string | null
   co_encadrant?: string | null
-  statut: 'actif' | 'suspendu' | 'abandon' | 'diplome'
+  statut: 'candidat' | 'actif' | 'suspendu' | 'abandon' | 'diplome'
   statut_libelle: string
+  est_candidat?: boolean
+  candidature?: Candidature
   est_boursier: boolean
   visible_annuaire: boolean
   inscription_courante?: Inscription | null
@@ -284,7 +288,17 @@ export interface NotificationPlateforme {
   cree_le: string
 }
 
-export type TypeSeance = 'seminaire' | 'etat_avancement' | 'autre'
+export type DecisionCandidature = 'admis' | 'ajourne' | 'non_admis'
+
+export interface Candidature {
+  depose_le: string | null
+  decision: DecisionCandidature | null
+  decision_libelle: string | null
+  admis_le: string | null
+  presentations?: { seance_id: number, seance: string, date: string, decision: DecisionCandidature | null, decision_libelle: string | null, observation: string | null }[]
+}
+
+export type TypeSeance = 'seminaire' | 'etat_avancement' | 'presentation_projet' | 'autre'
 export type RoleIntervenant = 'moderateur' | 'jury'
 
 export interface IntervenantPassage {
@@ -308,7 +322,11 @@ export interface PassageSeance {
   convoque_le: string | null
   /** jamais envoyée, à jour, ou modifiée depuis l'envoi (horaire, lieu, sujet, modérateurs, jury) */
   convocation: 'jamais' | 'a_jour' | 'modifiee'
-  doctorant: { id: string, nom_complet: string, matricule: string, photo_url: string | null, niveau: string | null, est_derogation: boolean, equipe: string | null }
+  decision: DecisionCandidature | null
+  decision_libelle: string | null
+  decision_observation: string | null
+  decision_notifiee_le: string | null
+  doctorant: { id: string, nom_complet: string, matricule: string, photo_url: string | null, niveau: string | null, est_derogation: boolean, equipe: string | null, statut: Doctorant['statut'], admis_le: string | null }
   intervenants: IntervenantPassage[]
 }
 
@@ -326,6 +344,7 @@ export interface Seance {
   pause: number
   annee_universitaire_id: number | null
   exige_paiement_solde: boolean
+  pour_candidats: boolean
   statut: 'brouillon' | 'publiee' | 'annulee'
   statut_libelle: string
   convocations_envoyees_le: string | null

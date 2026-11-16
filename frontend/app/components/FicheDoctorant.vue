@@ -93,7 +93,7 @@ useHead(() => ({ title: doctorant.value ? doctorant.value.nom_complet : 'Dossier
           <div class="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <span>{{ doctorant.matricule }}</span>
             <BadgeStatut :statut="doctorant.statut" :libelle="doctorant.statut_libelle" />
-            <BadgeNiveau :inscription="doctorant.inscription_courante" />
+            <BadgeNiveau v-if="!doctorant.est_candidat" :inscription="doctorant.inscription_courante" />
             <span v-if="doctorant.est_boursier" class="inline-flex items-center gap-1 rounded bg-brand-50 px-1.5 py-0.5 text-xs font-semibold text-brand-700"><GraduationCap class="size-3.5" aria-hidden="true" />Boursier</span>
             <BadgePaiement v-if="doctorant.paiement && doctorant.paiement.statut !== 'rien_a_payer'" :statut="doctorant.paiement.statut" :libelle="doctorant.paiement.statut_libelle" />
           </div>
@@ -103,11 +103,11 @@ useHead(() => ({ title: doctorant.value ? doctorant.value.nom_complet : 'Dossier
         <Button variant="outline" as-child>
           <NuxtLink :to="`/doctorants/${doctorant.id}/modifier`"><Pencil /> Modifier</NuxtLink>
         </Button>
-        <Button variant="outline" @click="actes?.ouvrir()"><Stamp /> Délivrer un acte</Button>
-        <Button v-if="doctorant.url_carte" variant="outline" as-child :title="doctorant.photo_url ? undefined : 'Sans photo : ajoutez-la depuis « Modifier »'">
+        <Button v-if="!doctorant.est_candidat" variant="outline" @click="actes?.ouvrir()"><Stamp /> Délivrer un acte</Button>
+        <Button v-if="doctorant.url_carte && !doctorant.est_candidat" variant="outline" as-child :title="doctorant.photo_url ? undefined : 'Sans photo : ajoutez-la depuis « Modifier »'">
           <a :href="doctorant.url_carte" target="_blank" rel="noopener"><IdCard /> Carte de doctorat</a>
         </Button>
-        <Button @click="ouvrirInscription()"><CalendarPlus /> Inscrire</Button>
+        <Button v-if="!doctorant.est_candidat" @click="ouvrirInscription()"><CalendarPlus /> Inscrire</Button>
       </div>
     </div>
 
@@ -121,8 +121,10 @@ useHead(() => ({ title: doctorant.value ? doctorant.value.nom_complet : 'Dossier
 
     <div class="grid gap-6 lg:grid-cols-3">
       <div class="grid content-start gap-6 lg:col-span-2">
+        <CarteCandidature v-if="doctorant.candidature && (doctorant.est_candidat || estSuperAdmin)" :doctorant="doctorant" @admis="refresh()" />
+
         <Card>
-          <CardHeader><CardTitle>Thèse</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{{ doctorant.est_candidat ? 'Projet de thèse' : 'Thèse' }}</CardTitle></CardHeader>
           <CardContent class="grid gap-3 text-sm">
             <div>
               <p class="text-muted-foreground">Équipe d'accueil</p>
@@ -149,7 +151,7 @@ useHead(() => ({ title: doctorant.value ? doctorant.value.nom_complet : 'Dossier
           </CardContent>
         </Card>
 
-        <Card>
+        <Card v-if="!doctorant.est_candidat">
           <CardHeader class="flex flex-row items-center justify-between">
             <CardTitle>Inscriptions</CardTitle>
             <Button v-if="doctorant.peut.modifier" variant="ghost" size="sm" @click="ouvrirInscription()"><CalendarPlus /> Ajouter</Button>
@@ -174,13 +176,13 @@ useHead(() => ({ title: doctorant.value ? doctorant.value.nom_complet : 'Dossier
           </CardContent>
         </Card>
 
-        <CartePaiements v-if="estSuperAdmin || utilisateur?.doctorant_id === doctorant.id" :doctorant-id="doctorant.id" :nom-complet="doctorant.nom_complet" @change="refresh()" />
+        <CartePaiements v-if="!doctorant.est_candidat && (estSuperAdmin || utilisateur?.doctorant_id === doctorant.id)" :doctorant-id="doctorant.id" :nom-complet="doctorant.nom_complet" @change="refresh()" />
 
         <PiecesJointes :doctorant-id="doctorant.id" :peut-ajouter="estSuperAdmin || utilisateur?.doctorant_id === doctorant.id" />
       </div>
 
       <div class="grid content-start gap-6">
-        <ActesDoctorant ref="actes" :doctorant="doctorant" />
+        <ActesDoctorant v-if="!doctorant.est_candidat" ref="actes" :doctorant="doctorant" />
 
         <Card>
           <CardHeader><CardTitle>Contact</CardTitle></CardHeader>
@@ -206,11 +208,12 @@ useHead(() => ({ title: doctorant.value ? doctorant.value.nom_complet : 'Dossier
           <CardHeader><CardTitle>Compte</CardTitle></CardHeader>
           <CardContent class="grid gap-3 text-sm">
             <p>
-              {{ doctorant.compte.derniere_connexion_le ? `Dernière connexion : ${formaterDateHeure(doctorant.compte.derniere_connexion_le)}` : "Le doctorant ne s'est jamais connecté." }}
+              <template v-if="doctorant.est_candidat">Pas encore d'accès à la plateforme : le lien d'accès part à l'admission.</template>
+              <template v-else>{{ doctorant.compte.derniere_connexion_le ? `Dernière connexion : ${formaterDateHeure(doctorant.compte.derniere_connexion_le)}` : "Le doctorant ne s'est jamais connecté." }}</template>
             </p>
             <p>Annuaire du site : {{ doctorant.visible_annuaire ? 'visible' : 'non visible' }}</p>
             <p v-if="doctorant.observation" class="rounded-md bg-muted p-3">{{ doctorant.observation }}</p>
-            <Button variant="outline" size="sm" :disabled="envoiLien" @click="renvoyerLien"><Send /> Renvoyer le lien d'accès</Button>
+            <Button v-if="!doctorant.est_candidat" variant="outline" size="sm" :disabled="envoiLien" @click="renvoyerLien"><Send /> Renvoyer le lien d'accès</Button>
           </CardContent>
         </Card>
 

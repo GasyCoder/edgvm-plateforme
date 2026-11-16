@@ -127,6 +127,14 @@ Règles métier :
 Canaux : plateforme (base de données), e-mail, SMS, WhatsApp. Voir le skill `edgvm-notifications`.
 Les numéros sont en E.164. SMS et WhatsApp passent par des canaux maison derrière une interface, avec un pilote `log` en local et dans les tests (aucun envoi réel hors production).
 
+## Candidats
+
+- Un candidat est un dossier `doctorants` au statut `candidat` : numéro provisoire `CAND-AAAA-NNNN`, compte inactif (pas d'accès), ni inscription ni frais, absent des listes de doctorants et des paiements. Menu « Candidats » (`CandidatController` : liste par état, compteurs).
+- Il présente son projet lors d'une séance de type `presentation_projet` (seuls les candidats y sont programmés ; la règle de paiement ne s'applique pas). Décision du jury par passage (`passages.decision` : `admis`, `ajourne`, `non_admis`), recopiée dans `doctorants.decision_candidature`. Un non admis ne peut plus être programmé ; un ajourné, oui.
+- `App\Actions\AdmettreCandidat` (fiche ou « Admettre les admis » d'une séance) : statut actif et vrai matricule, inscription D1 de l'année en cours avec ses droits, attestation d'admission (modèle `admission-doctorat`) délivrée, compte activé et lien d'accès, `AdmissionPrononcee` (e-mail avec l'attestation en pièce jointe).
+- « Informer » envoie `DecisionCandidature` (e-mail seul) aux ajournés et non admis pas encore informés.
+- Tests : `phpunit.xml` force la base en mémoire (`<env>` et `<server>`) ; ne jamais lancer les tests avec une vraie base.
+
 ## Réglages de l'application
 
 - `App\Support\ReglagesApplication` (table `reglages`, Paramètres > Application) : nom et sous-titre de la plateforme, École (nom, université, ministère, arrêté d'habilitation, description), directeur (`actes.signataire_nom`, `actes.signataire_grade`, `actes.signataire_titre`, partagés avec les actes), logos (`actes.logo_droite` EDGVM, `actes.logo_gauche` Université, servis publiquement par `/marque/{cle}`), indexation, maintenance, apparence.

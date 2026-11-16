@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CalendarPlus, ChevronLeft, ChevronRight, Copy, Download, Eye, FileDown, FileSpreadsheet, IdCard, MoreHorizontal, Pencil, Plus, ReceiptText, Search, Send, Stamp, Upload, Users, X } from '@lucide/vue'
+import { CalendarPlus, ChevronLeft, ChevronRight, Copy, Download, Eye, FileDown, FileSpreadsheet, FileText, IdCard, MoreHorizontal, Pencil, Plus, ReceiptText, Search, Send, Stamp, Upload, Users, X } from '@lucide/vue'
 import { useDebounceFn } from '@vueuse/core'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
@@ -159,6 +159,11 @@ const td = 'border-b border-gray-200 px-1.5 py-3.5 sm:px-2 first:ps-4 last:pe-3 
             <DropdownMenuItem :disabled="!selection.length" @select="exporter(true)"><FileSpreadsheet /> La sélection ({{ selection.length }})</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem @select="exporter(false, 'csv')"><FileDown /> {{ filtresActifs ? 'La liste filtrée' : 'Toute la liste' }} en CSV</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel class="text-xs font-normal text-slate-400">Pour importer</DropdownMenuLabel>
+            <DropdownMenuItem as-child>
+              <a href="/telechargements/modele-import-doctorants.csv"><FileText /> Modèle de fichier à remplir</a>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
         <Button v-if="estSuperAdmin" variant="outline" class="bg-white" @click="importOuvert = true"><Upload /> Importer</Button>

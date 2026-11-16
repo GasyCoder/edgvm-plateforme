@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\DecisionCandidature;
 use App\Enums\StatutDoctorant;
 use App\Enums\StatutInscription;
 use App\Support\NumeroMatricule;
@@ -17,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'user_id', 'matricule', 'nom', 'prenoms', 'genre', 'date_naissance', 'lieu_naissance', 'nationalite',
-    'numero_piece', 'adresse', 'equipe_accueil_id', 'sujet_these', 'directeur_these', 'co_directeur', 'co_encadrant', 'est_boursier', 'statut', 'visible_annuaire', 'observation',
+    'numero_piece', 'adresse', 'equipe_accueil_id', 'sujet_these', 'directeur_these', 'co_directeur', 'co_encadrant', 'est_boursier', 'statut', 'candidature_le', 'decision_candidature', 'admis_le', 'visible_annuaire', 'observation',
 ])]
 class Doctorant extends Model
 {
@@ -42,6 +43,9 @@ class Doctorant extends Model
         return [
             'date_naissance' => 'date',
             'statut' => StatutDoctorant::class,
+            'candidature_le' => 'date',
+            'decision_candidature' => DecisionCandidature::class,
+            'admis_le' => 'datetime',
             'est_boursier' => 'boolean',
             'visible_annuaire' => 'boolean',
         ];
@@ -198,6 +202,19 @@ class Doctorant extends Model
                 ->orWhere('matricule', 'like', "%{$terme}%")
                 ->orWhereHas('user', fn (Builder $compte) => $compte->where('email', 'like', "%{$terme}%"));
         });
+    }
+
+    public function estCandidat(): bool
+    {
+        return $this->statut === StatutDoctorant::Candidat;
+    }
+
+    /**
+     * @return HasMany<Passage, $this>
+     */
+    public function passages(): HasMany
+    {
+        return $this->hasMany(Passage::class);
     }
 
     /**

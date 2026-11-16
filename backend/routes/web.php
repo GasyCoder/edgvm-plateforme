@@ -1,10 +1,12 @@
 <?php
 
 use App\Http\Controllers\Api\ActeController;
+use App\Http\Controllers\Api\CandidatController;
 use App\Http\Controllers\Api\CarteDoctoratController;
 use App\Http\Controllers\Api\ImportExportDoctorantsController;
 use App\Http\Controllers\Api\PaiementController;
 use App\Http\Controllers\Api\PhotoDoctorantController;
+use App\Http\Controllers\Api\PhotoUtilisateurController;
 use App\Http\Controllers\Api\PieceJointeController;
 use App\Http\Controllers\Api\ReglagesActesController;
 use App\Http\Controllers\Api\ReglagesApplicationController;
@@ -19,7 +21,10 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth')->prefix('telechargements')->group(function (): void {
     Route::get('/doctorants.xlsx', [ImportExportDoctorantsController::class, 'exporterExcel'])->name('doctorants.export-excel');
     Route::get('/doctorants.csv', [ImportExportDoctorantsController::class, 'exporter'])->name('doctorants.export');
+    Route::get('/candidats.{format}', [CandidatController::class, 'exporter'])->whereIn('format', ['xlsx', 'csv'])->name('candidats.export');
+    Route::get('/modele-import-candidats.csv', [ImportExportDoctorantsController::class, 'modeleCandidats'])->name('candidats.modele-import');
     Route::get('/modele-import-doctorants.csv', [ImportExportDoctorantsController::class, 'modele'])->name('doctorants.modele-import');
+    Route::get('/utilisateurs/{utilisateur}/photo', [PhotoUtilisateurController::class, 'afficher'])->name('utilisateurs.photo');
     Route::get('/doctorants/{doctorant}/photo', [PhotoDoctorantController::class, 'afficher'])->name('doctorants.photo');
     Route::get('/doctorants/{doctorant}/carte.pdf', [CarteDoctoratController::class, 'une'])->name('doctorants.carte');
     Route::get('/cartes-doctorat.pdf', [CarteDoctoratController::class, 'lot'])->name('doctorants.cartes');

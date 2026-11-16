@@ -22,6 +22,9 @@ abstract class NotificationPlateforme extends Notification implements ShouldQueu
     /** Envoyer aussi par e-mail */
     protected bool $parEmail = false;
 
+    /** Bouton « Voir sur la plateforme » dans l'e-mail (pas pour qui n'y a pas encore accès) */
+    protected bool $avecBouton = true;
+
     abstract protected function titre(): string;
 
     abstract protected function message(): string;
@@ -85,9 +88,11 @@ abstract class NotificationPlateforme extends Notification implements ShouldQueu
             $courriel->line(TableauCourriel::details($details));
         }
 
-        return $courriel
-            ->action('Voir sur la plateforme', rtrim((string) config('app.frontend_url'), '/').$this->lien())
-            ->salutation("L'équipe de l'{$nom}");
+        if ($this->avecBouton) {
+            $courriel->action('Voir sur la plateforme', rtrim((string) config('app.frontend_url'), '/').$this->lien());
+        }
+
+        return $courriel->salutation("L'équipe de l'{$nom}");
     }
 
     protected static function ar(int $montant): string

@@ -48,6 +48,24 @@ class DoctorantResource extends JsonResource
             'co_encadrant' => $this->co_encadrant,
             'statut' => $this->statut->value,
             'statut_libelle' => $this->statut->libelle(),
+            'est_candidat' => $this->estCandidat(),
+            'candidature' => $this->when($this->candidature_le !== null || $this->estCandidat(), fn () => [
+                'depose_le' => $this->candidature_le?->toDateString(),
+                'decision' => $this->decision_candidature?->value,
+                'decision_libelle' => $this->decision_candidature?->libelle(),
+                'admis_le' => $this->admis_le?->toIso8601String(),
+                'presentations' => $this->whenLoaded('passages', fn () => $this->passages
+                    ->filter(fn ($passage) => $passage->seance?->pourCandidats())
+                    ->sortByDesc('debut')
+                    ->map(fn ($passage) => [
+                        'seance_id' => $passage->seance_id,
+                        'seance' => $passage->seance->titre,
+                        'date' => $passage->debut->format('Y-m-d\TH:i'),
+                        'decision' => $passage->decision?->value,
+                        'decision_libelle' => $passage->decision?->libelle(),
+                        'observation' => $passage->decision_observation,
+                    ])->values()),
+            ]),
             'est_boursier' => $this->est_boursier,
             'visible_annuaire' => $this->visible_annuaire,
             'compte' => $this->when($user->estSuperAdmin() && $this->relationLoaded('user'), fn () => [

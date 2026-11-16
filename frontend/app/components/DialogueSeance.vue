@@ -15,7 +15,7 @@ const props = defineProps<{ seance?: Seance | null }>()
 const ouvert = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ enregistre: [seance: Seance] }>()
 
-const TYPES: [TypeSeance, string][] = [['seminaire', 'Séminaire doctoral'], ['etat_avancement', "État d'avancement"], ['autre', 'Autre communication']]
+const TYPES: [TypeSeance, string][] = [['seminaire', 'Séminaire doctoral'], ['etat_avancement', "État d'avancement"], ['presentation_projet', 'Présentation de projet de thèse (candidats)'], ['autre', 'Autre communication']]
 
 const api = useApi()
 const { anneeCourante } = useReferentiels()
@@ -37,7 +37,7 @@ watch(ouvert, (estOuvert) => {
 
 /* Titre proposé d'après le type, tant qu'il n'a pas été écrit à la main */
 watch(() => formulaire.type, (type, avant) => {
-  const libelle = (t?: TypeSeance) => TYPES.find(([v]) => v === t)?.[1] ?? ''
+  const libelle = (t?: TypeSeance) => (TYPES.find(([v]) => v === t)?.[1] ?? '').replace(' (candidats)', '')
   if (!formulaire.titre || formulaire.titre === libelle(avant)) formulaire.titre = libelle(type)
 }, { immediate: true })
 
@@ -46,9 +46,10 @@ async function enregistrer() {
   erreurs.value = {}
   conflits.value = []
   try {
+    const corps = { ...formulaire, exige_paiement_solde: formulaire.type === 'presentation_projet' ? false : formulaire.exige_paiement_solde }
     const reponse = await (props.seance
-      ? api<{ data: Seance }>(`/api/seances/${props.seance.id}`, { method: 'PUT', body: formulaire })
-      : api<{ data: Seance }>('/api/seances', { method: 'POST', body: formulaire }))
+      ? api<{ data: Seance }>(`/api/seances/${props.seance.id}`, { method: 'PUT', body: corps })
+      : api<{ data: Seance }>('/api/seances', { method: 'POST', body: corps }))
     toast.success(props.seance ? 'Séance modifiée.' : 'Séance créée. Ajoutez maintenant les doctorants.')
     ouvert.value = false
     emit('enregistre', reponse.data)
@@ -96,7 +97,10 @@ async function enregistrer() {
         <ChampFormulaire libelle="Pause entre deux passages (minutes)" pour="seance-pause" :erreur="erreurs.pause">
           <Input id="seance-pause" v-model.number="formulaire.pause" type="number" min="0" max="120" />
         </ChampFormulaire>
-        <div class="flex items-start justify-between gap-4 rounded-md border p-4 sm:col-span-2">
+        <p v-if="formulaire.type === 'presentation_projet'" class="rounded-md bg-sun-50 px-4 py-3 text-sm text-sun-700 sm:col-span-2">
+          Séance de sélection : les candidats présentent leur projet de thèse ; le jury décide admis, ajourné ou non admis. Les admis sont ensuite inscrits en D1.
+        </p>
+        <div v-else class="flex items-start justify-between gap-4 rounded-md border p-4 sm:col-span-2">
           <div>
             <Label for="seance-paiement">Réservé aux doctorants à jour de paiement</Label>
             <p class="mt-1 text-xs text-slate-400">Un doctorant qui n'a pas réglé la totalité de ses frais ne peut pas être programmé.</p>

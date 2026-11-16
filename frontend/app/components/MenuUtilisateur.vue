@@ -16,7 +16,7 @@ const THEMES = [
 <template>
   <DropdownMenu v-if="utilisateur">
     <DropdownMenuTrigger class="flex items-center gap-3 rounded-md py-1 text-left outline-none">
-      <span class="flex size-9 flex-none items-center justify-center rounded-full bg-brand-600 text-sm font-semibold text-white">{{ initiales(utilisateur.name) }}</span>
+      <AvatarCompte :nom="utilisateur.name" :photo-url="utilisateur.photo_url" class="size-9 text-sm" />
       <span class="hidden leading-tight md:block">
         <span class="block text-[11px] font-medium text-brand-600">{{ utilisateur.role_libelle }}</span>
         <span class="flex items-center gap-1 text-sm font-bold text-slate-600">
@@ -27,7 +27,7 @@ const THEMES = [
     </DropdownMenuTrigger>
     <DropdownMenuContent align="end" class="w-72 p-0">
       <div class="flex items-center gap-3 border-b bg-gray-50 px-5 py-4">
-        <span class="flex size-10 flex-none items-center justify-center rounded-full bg-brand-600 text-sm font-semibold text-white">{{ initiales(utilisateur.name) }}</span>
+        <AvatarCompte :nom="utilisateur.name" :photo-url="utilisateur.photo_url" class="size-10 text-sm" />
         <div class="min-w-0">
           <p class="truncate text-sm font-bold text-slate-700">{{ utilisateur.name }}</p>
           <p class="truncate text-xs text-slate-400">{{ utilisateur.email }}</p>

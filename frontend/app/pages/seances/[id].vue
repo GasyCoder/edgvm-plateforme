@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowDown, ArrowLeft, ArrowUp, Ban, CalendarClock, Clock, Loader2, MapPin, MoreHorizontal, Pencil, Presentation, RefreshCw, Send, Trash2, UserCheck, UserPlus, Wallet, X } from '@lucide/vue'
+import { ArrowDown, ArrowLeft, ArrowUp, Ban, CalendarClock, Clock, Gavel, Loader2, Mail, MapPin, MoreHorizontal, Pencil, Presentation, RefreshCw, Send, Trash2, UserCheck, UserPlus, Wallet, X } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -136,6 +136,35 @@ async function terminer() {
 
 const jour = (date: string) => new Date(`${date}T00:00:00`).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 const parRole = (passage: PassageSeance, role: 'moderateur' | 'jury') => passage.intervenants.filter(i => i.role === role)
+
+/* Présentation de projet de thèse : décision du jury par candidat, puis admission ou information */
+const DECISIONS = [
+  { valeur: 'admis', libelle: 'Admis', aide: 'Il sera inscrit en D1 et recevra son attestation d\'admission.', classe: 'bg-leaf-50 text-leaf-600' },
+  { valeur: 'ajourne', libelle: 'Ajourné', aide: 'Il pourra présenter à nouveau son projet.', classe: 'bg-sun-100 text-sun-700' },
+  { valeur: 'non_admis', libelle: 'Non admis', aide: 'Candidature close.', classe: 'bg-red-50 text-destructive' },
+] as const
+const classeDecision = (decision: string | null) => DECISIONS.find(d => d.valeur === decision)?.classe ?? 'bg-gray-100 text-slate-500'
+const passageDecide = ref<PassageSeance | null>(null)
+const formulaireDecision = reactive({ decision: '' as string, observation: '' })
+function ouvrirDecision(passage: PassageSeance) {
+  passageDecide.value = passage
+  Object.assign(formulaireDecision, { decision: passage.decision ?? '', observation: passage.decision_observation ?? '' })
+}
+async function enregistrerDecision() {
+  if (!passageDecide.value) return
+  const reponse = await appeler(`/api/passages/${passageDecide.value.id}/decision`, { method: 'PUT', body: { decision: formulaireDecision.decision || null, observation: formulaireDecision.observation || null } })
+  if (reponse) passageDecide.value = null
+}
+const aAdmettre = computed(() => passages.value.filter(p => p.decision === 'admis' && p.doctorant.statut === 'candidat'))
+const aInformer = computed(() => passages.value.filter(p => (p.decision === 'ajourne' || p.decision === 'non_admis') && !p.decision_notifiee_le))
+const sansDecision = computed(() => passages.value.filter(p => !p.decision && p.doctorant.statut === 'candidat').length)
+const confirmationAdmission = ref(false)
+async function admettreTous() {
+  confirmationAdmission.value = false
+  const reponse = await appeler(`/api/seances/${seance.value!.id}/admettre`, { method: 'POST' }) as { refus?: { doctorant: string, raison: string }[] } | null
+  if (reponse?.refus?.length) toast.warning(reponse.refus.map(r => `${r.doctorant} : ${r.raison}`).join('\n'))
+}
+const informer = () => appeler(`/api/seances/${seance.value!.id}/informer`, { method: 'POST' })
 const th = 'border-y border-gray-300 px-2 py-2.5 text-start text-sm font-normal text-slate-400 first:ps-4 last:pe-4 sm:first:ps-5 sm:last:pe-5'
 const td = 'border-b border-gray-200 px-2 py-3 align-top first:ps-4 last:pe-4 sm:first:ps-5 sm:last:pe-5'
 </script>
@@ -165,7 +194,7 @@ const td = 'border-b border-gray-200 px-2 py-3 align-top first:ps-4 last:pe-4 sm
         </div>
         <div v-if="gerer" class="flex flex-wrap gap-2">
           <Button variant="outline" class="bg-white" @click="dialogueSeance = true"><Pencil /> Modifier</Button>
-          <Button variant="outline" class="bg-white" @click="dialogueCandidats = true"><UserPlus /> Programmer des doctorants</Button>
+          <Button variant="outline" class="bg-white" @click="dialogueCandidats = true"><UserPlus /> {{ seance.pour_candidats ? 'Programmer des candidats' : 'Programmer des doctorants' }}</Button>
           <Button :disabled="!passages.length || occupe" @click="confirmationConvocation = true">
             <Send /> Envoyer les convocations
             <span v-if="aEnvoyer" class="rounded-full bg-white/20 px-1.5 text-xs font-bold tabular-nums">{{ aEnvoyer }}</span>
@@ -183,6 +212,18 @@ const td = 'border-b border-gray-200 px-2 py-3 align-top first:ps-4 last:pe-4 sm
           </DropdownMenu>
         </div>
       </header>
+
+      <!-- Décisions du jury (présentation de projet de thèse) -->
+      <div v-if="seance.pour_candidats && gerer && passages.length" class="flex flex-wrap items-center gap-3 rounded-md border border-gray-300 bg-white px-4 py-3 sm:px-5">
+        <p class="text-sm text-slate-600">
+          <span class="font-semibold text-slate-700">Décisions du jury :</span>
+          {{ passages.filter(p => p.decision === 'admis').length }} admis, {{ passages.filter(p => p.decision === 'ajourne').length }} ajourné(s), {{ passages.filter(p => p.decision === 'non_admis').length }} non admis<template v-if="sansDecision">, {{ sansDecision }} sans décision</template>.
+        </p>
+        <div class="flex flex-wrap gap-2 sm:ms-auto">
+          <Button size="sm" variant="outline" :disabled="!aInformer.length || occupe" @click="informer"><Mail /> Informer ajournés et non admis ({{ aInformer.length }})</Button>
+          <Button size="sm" :disabled="!aAdmettre.length || occupe" @click="confirmationAdmission = true"><UserCheck /> Admettre les admis ({{ aAdmettre.length }})</Button>
+        </div>
+      </div>
 
       <p v-if="seance.description" class="max-w-4xl whitespace-pre-line rounded-md border border-gray-300 bg-white p-4 text-sm leading-relaxed text-slate-600">{{ seance.description }}</p>
 
@@ -210,10 +251,11 @@ const td = 'border-b border-gray-200 px-2 py-3 align-top first:ps-4 last:pe-4 sm
               <tr>
                 <th v-if="gerer" :class="th" class="w-10"><Checkbox :model-value="toutCoche" aria-label="Tout sélectionner" @update:model-value="basculerTout" /></th>
                 <th :class="th" class="w-28">Horaire</th>
-                <th :class="th">Doctorant</th>
+                <th :class="th">{{ seance.pour_candidats ? 'Candidat' : 'Doctorant' }}</th>
                 <th :class="th" class="hidden lg:table-cell">Sujet</th>
                 <th :class="th">Modération</th>
                 <th :class="th">Jury</th>
+                <th v-if="seance.pour_candidats" :class="th">Décision</th>
                 <th v-if="gerer" :class="th" class="w-24"><span class="sr-only">Actions</span></th>
               </tr>
             </thead>
@@ -250,6 +292,13 @@ const td = 'border-b border-gray-200 px-2 py-3 align-top first:ps-4 last:pe-4 sm
                   </ul>
                   <button v-if="gerer && role === 'moderateur'" type="button" class="mt-1 text-xs font-medium text-brand-700 hover:underline" @click="affecterA([passage])">+ Ajouter</button>
                 </td>
+                <td v-if="seance.pour_candidats" :class="td">
+                  <span v-if="passage.doctorant.admis_le" class="inline-block rounded bg-brand-50 px-2 py-0.5 text-xs font-semibold text-brand-800">Admis, inscrit en D1</span>
+                  <button v-else-if="gerer" type="button" class="rounded px-2 py-0.5 text-xs font-semibold hover:ring-1 hover:ring-brand-300" :class="classeDecision(passage.decision)" @click="ouvrirDecision(passage)">{{ passage.decision_libelle ?? 'Décider' }}</button>
+                  <span v-else class="inline-block rounded px-2 py-0.5 text-xs font-semibold" :class="classeDecision(passage.decision)">{{ passage.decision_libelle ?? 'À venir' }}</span>
+                  <p v-if="passage.decision_notifiee_le && passage.decision !== 'admis'" class="mt-1 text-[11px] text-slate-400">Informé {{ depuis(passage.decision_notifiee_le) }}</p>
+                  <p v-if="gerer && passage.decision_observation" class="mt-1 line-clamp-2 max-w-[12rem] text-[11px] text-slate-500">« {{ passage.decision_observation }} »</p>
+                </td>
                 <td v-if="gerer" :class="td" class="text-end">
                   <div class="flex justify-end">
                     <Button variant="ghost" size="icon-sm" class="text-slate-400" :disabled="index === 0 || occupe" :aria-label="`Avancer ${passage.doctorant.nom_complet}`" @click="deplacer(index, -1)"><ArrowUp /></Button>
@@ -257,6 +306,7 @@ const td = 'border-b border-gray-200 px-2 py-3 align-top first:ps-4 last:pe-4 sm
                     <DropdownMenu>
                       <DropdownMenuTrigger as-child><Button variant="ghost" size="icon-sm" class="text-slate-400" :aria-label="`Actions pour ${passage.doctorant.nom_complet}`"><MoreHorizontal /></Button></DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem v-if="seance.pour_candidats && !passage.doctorant.admis_le" @select="ouvrirDecision(passage)"><Gavel /> Décision du jury</DropdownMenuItem>
                         <DropdownMenuItem @select="modifierPassage(passage)"><Clock /> Modifier l'horaire ou le sujet</DropdownMenuItem>
                         <DropdownMenuItem @select="affecterA([passage])"><UserCheck /> Modérateurs et jury</DropdownMenuItem>
                         <DropdownMenuItem @select="convoquer('passages', [passage.id])"><Send /> {{ passage.convocation === 'jamais' ? 'Envoyer la convocation' : 'Renvoyer la convocation' }}</DropdownMenuItem>
@@ -302,6 +352,54 @@ const td = 'border-b border-gray-200 px-2 py-3 align-top first:ps-4 last:pe-4 sm
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <!-- Décision du jury pour un candidat -->
+      <Dialog :open="passageDecide !== null" @update:open="o => { if (!o) passageDecide = null }">
+        <DialogContent class="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Décision du jury</DialogTitle>
+            <DialogDescription>{{ passageDecide?.doctorant.nom_complet }}, présentation de {{ passageDecide?.heure_debut }}</DialogDescription>
+          </DialogHeader>
+          <form id="form-decision" class="grid gap-4" novalidate @submit.prevent="enregistrerDecision">
+            <fieldset class="grid gap-2">
+              <legend class="sr-only">Décision</legend>
+              <label v-for="d in DECISIONS" :key="d.valeur" class="flex cursor-pointer gap-3 rounded-md border p-3 text-sm has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand-500" :class="formulaireDecision.decision === d.valeur ? 'border-brand-500 bg-brand-50' : 'border-gray-300'">
+                <input v-model="formulaireDecision.decision" type="radio" :value="d.valeur" class="mt-1 accent-brand-700">
+                <span><span class="block font-semibold text-slate-700">{{ d.libelle }}</span><span class="text-slate-500">{{ d.aide }}</span></span>
+              </label>
+              <button v-if="formulaireDecision.decision" type="button" class="justify-self-start text-xs text-slate-400 hover:text-brand-700 hover:underline" @click="formulaireDecision.decision = ''">Retirer la décision</button>
+            </fieldset>
+            <ChampFormulaire libelle="Observation du jury" pour="decision-observation" aide="Communiquée au candidat ajourné ou non admis.">
+              <Textarea id="decision-observation" v-model="formulaireDecision.observation" rows="3" class="resize-y" />
+            </ChampFormulaire>
+          </form>
+          <DialogFooter>
+            <Button variant="outline" @click="passageDecide = null">Annuler</Button>
+            <Button type="submit" form="form-decision" :disabled="occupe"><Loader2 v-if="occupe" class="animate-spin" /> Enregistrer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <!-- Admission des candidats admis -->
+      <AlertDialog v-model:open="confirmationAdmission">
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Admettre {{ aAdmettre.length }} candidat{{ aAdmettre.length > 1 ? 's' : '' }} ?</AlertDialogTitle>
+            <AlertDialogDescription>Pour chacun, en une seule fois :</AlertDialogDescription>
+          </AlertDialogHeader>
+          <ul class="grid list-disc gap-1 ps-5 text-sm text-slate-600">
+            <li>il devient doctorant et reçoit son matricule ;</li>
+            <li>il est inscrit en D1 pour l'année en cours, avec ses droits d'inscription ;</li>
+            <li>l'attestation d'admission est délivrée ;</li>
+            <li>il reçoit un e-mail avec l'attestation et son lien d'accès à la plateforme.</li>
+          </ul>
+          <p class="text-sm text-slate-500">{{ aAdmettre.map(p => p.doctorant.nom_complet).join(', ') }}</p>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <Button :disabled="occupe" @click="admettreTous"><UserCheck /> Admettre</Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <!-- Convocations -->
       <AlertDialog v-model:open="confirmationConvocation">

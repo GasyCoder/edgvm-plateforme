@@ -2,6 +2,7 @@
 
 namespace App\Actions;
 
+use App\Enums\StatutDoctorant;
 use App\Http\Requests\DoctorantRequest;
 use App\Models\AnneeUniversitaire;
 use App\Models\EquipeAccueil;
@@ -43,7 +44,10 @@ class AnalyserImportDoctorants
     /**
      * @return array{lignes: array<int, array{ligne: int, donnees: array<string, mixed>, erreurs: array<int, string>, libelle: string}>, erreur_fichier: ?string}
      */
-    public function __invoke(string $chemin): array
+    /**
+     * Avec « $candidats », chaque ligne devient un candidat : ni niveau ni matricule (numéro provisoire, inscription à l'admission).
+     */
+    public function __invoke(string $chemin, bool $candidats = false): array
     {
         $lignes = FichierCsv::lire($chemin);
 
@@ -76,7 +80,15 @@ class AnalyserImportDoctorants
                 }
             }
 
+            if ($candidats) {
+                unset($valeurs['niveau'], $valeurs['matricule']);
+            }
+
             [$donnees, $erreurs, $dejaSignales] = $this->preparer($valeurs, $equipes->all(), $annee);
+
+            if ($candidats) {
+                $donnees['statut'] = StatutDoctorant::Candidat->value;
+            }
 
             $validation = Validator::make($donnees, DoctorantRequest::regles(), DoctorantRequest::messagesValidation(), DoctorantRequest::nomsDesChamps());
             $messages = collect($validation->errors()->messages())->except($dejaSignales)->flatten()->all();
